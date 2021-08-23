@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('ping')
         .setDescription('Replies with Pong!'),
-    async execute(interaction) {
-        await interaction.reply({ content: 'Pong! You smell.', ephemeral: true });
+    async execute(bot, iact) {
+        await iact.reply({ content: 'Pong! You smell.', ephemeral: true });
     },
 };

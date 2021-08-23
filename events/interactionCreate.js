@@ -1,16 +1,15 @@
 module.exports = {
     name: 'interactionCreate',
-    execute(interaction) {
-        console.log(`${interaction.user.tag} in #${interaction.channel.name} triggered an interaction.`);
-        if (interaction.isCommand()) {
-            const command = interaction.client.commands.get(interaction.commandName);
+    execute(bot, iact) {
+        if (iact.isCommand()) {
+            const command = iact.client.commands.get(iact.commandName);
             if (command) {
-                console.log(`${interaction.user.tag} in #${interaction.channel.name} executed command: ${interaction.commandName}`);
-                command.execute(interaction);
+                console.log(`${iact.user.tag} in #${iact.channel.name} executed command: ${iact.commandName}`);
+                command.execute(bot, iact);
             }
             else {
-                console.log(`${interaction.user.tag} in #${interaction.channel.name} sent invalid command: ${interaction.commandName}`);
-                interaction.reply({ content: 'Invalid command!', ephemeral: true });
+                console.log(`${iact.user.tag} in #${iact.channel.name} sent invalid command: ${iact.commandName}`);
+                iact.reply({ content: 'Invalid command!', ephemeral: true });
             }
         }
     },

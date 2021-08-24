@@ -4,12 +4,19 @@ module.exports = {
         if (!action.user.bot && action.isCommand()) {
             const command = bot.commands.get(action.commandName);
             if (command) {
-                console.log(`${action.user.tag} in #${action.channel.name} executed command: ${action.commandName}`);
-                command.execute(bot, action);
+                const level = bot.access.level(action.guild, action.user);
+                if (command.level !== undefined && command.level !== null && command.level > level) {
+                    console.log(`${action.user.tag} in #${action.channel.name} failed command: ${command.name} (Level ${command.level} > ${level})`);
+                    action.reply({ content: `Sorry, you need level **${command.level}** to execute **${command.name}**, but your level is **${level}**.`, ephemeral: true });
+                }
+                else {
+                    console.log(`${action.user.tag} in #${action.channel.name} executed command: ${command.name}`);
+                    command.execute(bot, action);
+                }
             }
             else {
                 console.log(`${action.user.tag} in #${action.channel.name} sent invalid command: ${action.commandName}`);
-                action.reply({ content: 'Invalid command!', ephemeral: true });
+                action.reply({ content: `Sorry, there is no such command called **'${action.commandName}'**'`, ephemeral: true });
             }
         }
     },

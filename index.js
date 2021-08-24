@@ -7,6 +7,7 @@ class Bot extends Client {
     constructor() {
         super({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MEMBERS] });
         this.config = global.config = require('./config.json');
+        this.shuttingdown = false;
         global.sources = [];
 
         const srcfiles = fs.readdirSync('./src').filter(file => file.endsWith('.js'));
@@ -40,6 +41,7 @@ class Bot extends Client {
 
         this.on('error', console.error);
         this.on('warn', console.warn);
+        this.on('debug', console.log);
 
         // Process handlers
         process.on('exit', () => this.shutdown());
@@ -50,34 +52,33 @@ class Bot extends Client {
         });
 
         process.on('unhandledRejection', err => {
-            console.error('Uncaught Promise error: \n' + err.stack);
+            console.error('Uncaught promise error: \n' + err.stack);
         });
+
+        process.on('SIGINT', () => this.shutdown());
+        process.on('SIGTERM', () => this.shutdown());
+        process.on('SIGKILL', () => this.shutdown());
+        process.on('SIGHUP', () => this.shutdown(true));
     }
 
     start() {
         if (!this.config) return false;
-
         this.login(this.config.token);
-
         return true;
     }
 
-    async shutdown(restart = true) {
-        if (this.shutdown) return;
-        this.shutdown = true;
-
-        if (this.loaded) {
-            await this.destroy();
-        }
-
-        this.emit('die', restart);
+    async shutdown(restart = false) {
+        if (this.shuttingdown) return;
+        console.log('Shutdown request received...');
+        this.shuttingdown = true;
+        if (this.loaded) this.destroy();
+        this.emit('shutdown', restart);
     }
 }
 
 const start = () => {
     const bot = new Bot();
-
-    bot.once('die', async reboot => {
+    bot.once('shutdown', async (reboot) => {
         if (reboot) {
             console.log('Process has exited. Rebooting...');
             await wait(3000);
@@ -88,7 +89,6 @@ const start = () => {
             process.exit(0);
         }
     });
-
     bot.start();
 };
 

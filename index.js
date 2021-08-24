@@ -8,7 +8,7 @@ class Bot extends Client {
         super({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MEMBERS] });
 
         // Setup globals
-        this.config = global.config = require('./config.json');
+        this.config = require('./config.json');
         this.shuttingdown = false;
         global.sources = [];
 
@@ -86,10 +86,10 @@ class Bot extends Client {
         console.log('Shutdown request received...');
         this.shuttingdown = true;
         for (const source of global.sources) {
-            const mod = global[source];
+            const src = global[source];
             if (typeof mod === 'object') {
-                console.log(`Shutting down source: ${mod.name ? mod.name : source}`);
-                if (typeof mod.shutdown === 'function') mod.shutdown();
+                console.log(`Shutting down source: ${src.name ? src.name : source}`);
+                if (typeof src.shutdown === 'function') src.shutdown();
             }
         }
         if (this.loaded) this.destroy();

@@ -6,8 +6,8 @@ module.exports = {
     words: {},
     start() {
         for (const word of this.list) {
-            console.log(`Loading dictionary: ./dict/${word}.json`);
-            const data = fs.readFileSync(`./dict/${word}.json`, 'utf-8');
+            console.log(`Loading dictionary: ./db/dict/${word}.json`);
+            const data = fs.readFileSync(`./db/dict/${word}.json`, 'utf-8');
             try {
                 this.words[word] = JSON.parse(data);
                 console.log(`Dictionary '${word}' loaded ` + this.words[word].length + ' entries.');
@@ -20,24 +20,40 @@ module.exports = {
         return true;
     },
     shutdown() {
-        for (const word of this.list) {
-            console.log(`Saving dictionary: ./dict/${word}.json`);
+        for (const word of this.list) this.save(word);
+    },
+    save(word) {
+        console.log(`Saving dictionary: ./db/dict/${word}.json`);
+        try {
+            fs.accessSync(`./db/dict/${word}.json`, fs.constants.R_OK);
             try {
-                fs.accessSync(`./dict/${word}.json`, fs.constants.R_OK);
-                try {
-                    fs.renameSync(`./dict/${word}.json`, `./dict/${word}.bak`);
-                    console.log(`Saving dictionary backup: ./dict/${word}.bak`);
-                }
-                catch (e) {
-                    console.log(`Saving dictionary backup failed: ./dict/${word}.bak (${e})`);
-                }
+                fs.renameSync(`./db/dict/${word}.json`, `./db/dict/${word}.bak`);
+                console.log(`Saving dictionary backup: ./db/dict/${word}.bak`);
             }
             catch (e) {
-                console.log(`Saving dictionary backup not found: ./dict/${word}.json (${e})`);
+                console.log(`Saving dictionary backup failed: ./db/dict/${word}.bak (${e})`);
             }
-            fs.writeFileSync(`./dict/${word}.json`, JSON.stringify(this.words[word], null, 2));
         }
-        return true;
+        catch (e) {
+            console.log(`Saving dictionary backup not found: ./db/dict/${word}.json (${e})`);
+        }
+        try {
+            fs.writeFileSync(`./db/dict/${word}.json`, JSON.stringify(this.words[word], null, 2));
+            return true;
+        }
+        catch (e) {
+            console.log(`Saving dictionary failed: ./db/dict/${word}.json (${e})`);
+            return false;
+        }
+    },
+    print(sep = ', ') {
+        let dosep = false, result = '';
+        for (const word of this.list) {
+            if (dosep) result += sep;
+            result += word;
+            dosep = true;
+        }
+        return result;
     },
     search(word, str) {
         if (typeof this.words[word] === 'undefined' || this.words[word] === null) return [];

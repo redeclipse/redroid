@@ -1,3 +1,4 @@
 #!/bin/sh
-node deploy.js
 node index.js
+echo "Press any key to exit..."
+read c

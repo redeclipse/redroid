@@ -1,5 +1,6 @@
 module.exports = {
-    init() {
+    name: 'tools',
+    start() {
         return true;
     },
     rand(min, max) {

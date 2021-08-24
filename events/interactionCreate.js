@@ -4,7 +4,7 @@ module.exports = {
         if (!action.user.bot && action.isCommand()) {
             const command = bot.commands.get(action.commandName);
             if (command) {
-                const level = bot.access.level(action.guild, action.user);
+                const level = global.access.level(action.guild, action.user);
                 if (command.level !== undefined && command.level !== null && command.level > level) {
                     console.log(`${action.user.tag} in #${action.channel.name} failed command: ${command.name} (Level ${command.level} > ${level})`);
                     action.reply({ content: `Sorry, you need level **${command.level}** to execute **${command.name}**, but your level is **${level}**.`, ephemeral: true });

@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 
 module.exports = {
+    level: 1,
     data: new SlashCommandBuilder()
         .setName('obit')
         .setDescription('Prints an obituary.')

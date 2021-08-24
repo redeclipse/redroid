@@ -1,5 +1,6 @@
 module.exports = {
-    init() {
+    name: 'access',
+    start() {
         return true;
     },
     level(guild, user) {

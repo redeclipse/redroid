@@ -1,6 +1,7 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
 
 module.exports = {
+    level: 0,
     data: new SlashCommandBuilder()
         .setName('access')
         .setDescription('Obtains access levels.')

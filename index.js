@@ -6,23 +6,27 @@ class Bot extends Client {
     // Instantiate the Discord client
     constructor() {
         super({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MEMBERS] });
+
+        // Setup globals
         this.config = global.config = require('./config.json');
         this.shuttingdown = false;
         global.sources = [];
 
+        // Load source files and start them
         const srcfiles = fs.readdirSync('./src').filter(file => file.endsWith('.js'));
         for (const file of srcfiles) {
             console.log(`Loading source: ${file}`);
             const name = file.slice(0, -3);
             global[name] = require(`./src/${file}`);
             try {
-                if (global[name].init(this)) global.sources.push(name);
+                if (global[name].start(this)) global.sources.push(name);
             }
             catch (e) {
                 console.error(e);
             }
         }
 
+        // Load commands and add them to the client collection
         this.commands = new Collection();
         const commandfiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
         for (const file of commandfiles) {
@@ -31,6 +35,7 @@ class Bot extends Client {
             this.commands.set(command.data.name, command);
         }
 
+        // Load events and connect their emitters
         const eventfiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
         for (const file of eventfiles) {
             console.log(`Loading event: ${file}`);
@@ -39,6 +44,7 @@ class Bot extends Client {
             else this.on(event.name, (...args) => event.execute(this, ...args));
         }
 
+        // Console redirections
         this.on('error', console.error);
         this.on('warn', console.warn);
         this.on('debug', console.log);
@@ -49,10 +55,18 @@ class Bot extends Client {
         process.on('uncaughtException', (err) => {
             const errorMsg = (err ? err.stack || err : '').toString();
             console.error(errorMsg);
+            if (this.shuttingdown) {
+                if (this.loaded) this.destroy();
+                this.emit('shutdown', false);
+            }
         });
 
         process.on('unhandledRejection', err => {
             console.error('Uncaught promise error: \n' + err.stack);
+            if (this.shuttingdown) {
+                if (this.loaded) this.destroy();
+                this.emit('shutdown', false);
+            }
         });
 
         process.on('SIGINT', () => this.shutdown());
@@ -71,6 +85,13 @@ class Bot extends Client {
         if (this.shuttingdown) return;
         console.log('Shutdown request received...');
         this.shuttingdown = true;
+        for (const source of global.sources) {
+            const mod = global[source];
+            if (typeof mod === 'object') {
+                console.log(`Shutting down source: ${mod.name ? mod.name : source}`);
+                if (typeof mod.shutdown === 'function') mod.shutdown();
+            }
+        }
         if (this.loaded) this.destroy();
         this.emit('shutdown', restart);
     }

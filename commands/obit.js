@@ -7,7 +7,7 @@ module.exports = {
         .setDescription('Prints an obituary.')
         .addUserOption(option => option.setName('target').setDescription('Select a user')),
     async execute(bot, action) {
-        const user = await global.tools.randomuser(action, 'target');
+        const user = await global.tools.pickuser(action, 'target');
         let data = `<@${user.id}> was `;
         data += global.dict.query('killed', action.user, user);
         data += ' with ';

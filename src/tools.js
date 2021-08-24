@@ -18,5 +18,13 @@ module.exports = {
         let user = action.options.getUser(value);
         if (!user) user = action.user;
         return user;
+    },
+    pickuser(action, value) {
+        if (global.access.level(action.guild, action.user) >= 2) return this.randomuser(action, value);
+        return this.defaultuser(action, value);
+    },
+    strtoregex(str) {
+        const args = str.match(/^\/(.*?)\/([gimsuy]*)$/);
+        return args ? new RegExp(args[1], args[2]) : new RegExp(str);
     }
 };

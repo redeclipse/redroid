@@ -7,7 +7,7 @@ module.exports = {
         .setDescription('Tells someone to STFU.')
         .addUserOption(option => option.setName('target').setDescription('Select a user')),
     async execute(bot, action) {
-        const user = await global.tools.randomuser(action, 'target');
+        const user = await global.tools.pickuser(action, 'target');
         let data = `<@${action.user.id}> `;
         data += global.dict.query('insert', action.user, user);
         data += ' ';

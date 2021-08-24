@@ -26,18 +26,23 @@ module.exports = {
                 fs.accessSync(`./dict/${word}.json`, fs.constants.R_OK);
                 try {
                     fs.renameSync(`./dict/${word}.json`, `./dict/${word}.bak`);
-                    console.log(`Saving backup: ./dict/${word}.bak`);
+                    console.log(`Saving dictionary backup: ./dict/${word}.bak`);
                 }
                 catch (e) {
-                    console.log(`Failed to save backup: ./dict/${word}.bak`);
+                    console.log(`Saving dictionary backup failed: ./dict/${word}.bak (${e})`);
                 }
             }
             catch (e) {
-                console.log(`Original dictionary not found: ./dict/${word}.json`);
+                console.log(`Saving dictionary backup not found: ./dict/${word}.json (${e})`);
             }
             fs.writeFileSync(`./dict/${word}.json`, JSON.stringify(this.words[word], null, 2));
         }
         return true;
+    },
+    search(word, str) {
+        if (typeof this.words[word] === 'undefined' || this.words[word] === null) return [];
+        const regex = global.tools.strtoregex(str);
+        return this.words[word].filter(value => value.match(regex));
     },
     lookup(word, index = -1) {
         if (typeof this.words[word] === 'undefined' || this.words[word] === null) return null;

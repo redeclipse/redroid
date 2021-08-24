@@ -7,7 +7,7 @@ module.exports = {
         .setDescription('Slaps someone good.')
         .addUserOption(option => option.setName('target').setDescription('Select a user')),
     async execute(bot, action) {
-        const user = await global.tools.randomuser(action, 'target');
+        const user = await global.tools.pickuser(action, 'target');
         let data = `<@${action.user.id}> slaps <@${user.id}> `;
         data += global.dict.query('action', action.user, user);
         data += ' using ';

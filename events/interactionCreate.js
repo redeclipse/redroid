@@ -1,15 +1,15 @@
 module.exports = {
     name: 'interactionCreate',
-    execute(bot, iact) {
-        if (!iact.user.bot && iact.isCommand()) {
-            const command = iact.client.commands.get(iact.commandName);
+    execute(bot, action) {
+        if (!action.user.bot && action.isCommand()) {
+            const command = action.client.commands.get(action.commandName);
             if (command) {
-                console.log(`${iact.user.tag} in #${iact.channel.name} executed command: ${iact.commandName}`);
-                command.execute(bot, iact);
+                console.log(`${action.user.tag} in #${action.channel.name} executed command: ${action.commandName}`);
+                command.execute(bot, action);
             }
             else {
-                console.log(`${iact.user.tag} in #${iact.channel.name} sent invalid command: ${iact.commandName}`);
-                iact.reply({ content: 'Invalid command!', ephemeral: true });
+                console.log(`${action.user.tag} in #${action.channel.name} sent invalid command: ${action.commandName}`);
+                action.reply({ content: 'Invalid command!', ephemeral: true });
             }
         }
     },

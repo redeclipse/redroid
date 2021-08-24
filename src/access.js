@@ -1,4 +1,7 @@
 module.exports = {
+    init() {
+        return true;
+    },
     level(guild, user) {
         const member = guild.members.resolve(user);
         switch (guild.id) {

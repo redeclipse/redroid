@@ -9,7 +9,7 @@ module.exports = {
         let question = action.options.getString('question');
         if (question.slice(-1) != '?') question += '?';
         let data = `<@${action.user.id}> asks: *${question}*\n`;
-        data += `<@${action.client.user.id}> `;
+        data += `<@${bot.user.id}> `;
         data += global.dict.query('consult', action.user, action.user, question);
         data += ', the answer is: *';
         // TODO: add random answers from quotes?

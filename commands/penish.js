@@ -7,8 +7,7 @@ module.exports = {
         .addUserOption(option => option.setName('target').setDescription('Select a user')),
     magic: [12, 8, 20, 15, 8, 1, 6, 9, 15, -2, -21, -2, 5, 12, 19, 5, 8, -12, 6, -2, 14, 9, -8, 1, 6, -9, 15, 2, 21, 2, -8, 12, -19, 5, 8, -20],
     async execute(bot, action) {
-        let user = action.options.getUser('target');
-        if (!user) user = action.user;
+        const user = global.tools.defaultuser(action, 'target');
         const str = user.username.toLowerCase();
         let ret = 0, math = '';
         for (let i = 0; i < str.length; i++) {

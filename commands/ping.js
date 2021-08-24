@@ -5,6 +5,6 @@ module.exports = {
         .setName('ping')
         .setDescription('Replies with Pong!'),
     async execute(bot, action) {
-        await action.reply({ content: 'Pong! You smell.', ephemeral: true });
+        await action.reply({ content: 'Pong! You smell.' });
     },
 };

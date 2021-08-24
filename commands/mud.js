@@ -6,8 +6,7 @@ module.exports = {
         .setDescription('Prints an multi user dungeon event.')
         .addUserOption(option => option.setName('target').setDescription('Select a user')),
     async execute(bot, action) {
-        let user = action.options.getUser('target');
-        if (!user) user = action.user;
+        const user = await global.tools.randomuser(action, 'target');
         let data = `<@${user.id}> `;
         data += global.dict.query('verb', action.user, user);
         data += ' ';

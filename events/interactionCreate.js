@@ -2,7 +2,7 @@ module.exports = {
     name: 'interactionCreate',
     execute(bot, action) {
         if (!action.user.bot && action.isCommand()) {
-            const command = action.client.commands.get(action.commandName);
+            const command = bot.commands.get(action.commandName);
             if (command) {
                 console.log(`${action.user.tag} in #${action.channel.name} executed command: ${action.commandName}`);
                 command.execute(bot, action);

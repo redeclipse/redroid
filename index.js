@@ -5,7 +5,7 @@ const wait = ms => new Promise(_ => setTimeout(_, ms));
 class Bot extends Client {
     // Instantiate the Discord client
     constructor() {
-        super({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES] });
+        super({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MEMBERS] });
         this.config = global.config = require('./config.json');
         global.sources = [];
 
@@ -50,7 +50,7 @@ class Bot extends Client {
         });
 
         process.on('unhandledRejection', err => {
-            console.severe('Uncaught Promise error: \n' + err.stack);
+            console.error('Uncaught Promise error: \n' + err.stack);
         });
     }
 

@@ -53,7 +53,7 @@ module.exports = {
     search(target, str) {
         const regex = global.tools.strtoregex(str);
         if (typeof target !== 'undefined' && target !== null && target !== '') {
-            const targ = this.findtarget(target);
+            const targ = this.findtarg(target);
             if (targ === null) return null;
             return this.quotes[targ].filter(value => value.match(regex));
         }

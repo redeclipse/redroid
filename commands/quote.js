@@ -18,24 +18,36 @@ module.exports = {
             }
         }
         */
-        const target = action.options.getString('target'), str = action.options.getString('search'), result = global.quote.query(target, str);
-        if (result !== null && result !== '') {
-            let msg = `<@${action.user.id}>:\n`;
-            msg += '```';
-            msg += '<' + result[0] + '> ' + result[1];
-            msg += '```';
+        const target = action.options.getString('target');
+        if (target.slice(0, 2) === '<@') {
             await action.reply({
-                content: msg
+                content: `Sorry, <@${action.user.id}>, searching by Discord ID is not yet supported. Try their IRC nickname?`
             });
         }
         else {
-            let msg = `Sorry, <@${action.user.id}>, there were no quotes`;
-            if (typeof target !== 'undefined' && target !== null && target !== '') msg += ` for **'${target}'**`;
-            if (typeof str !== 'undefined' && str !== null && str !== '') msg += ` matching **'${str}'**`;
-            msg += '.';
-            await action.reply({
-                content: msg
-            });
+            const str = action.options.getString('search'), result = global.quote.query(target, str);
+            if (result !== null && result !== '') {
+                let msg = `<@${action.user.id}> searched for quotes by `;
+                if (typeof target !== 'undefined' && target !== null && target !== '') msg += ` **'${target}'**`;
+                else msg += '**anyone**';
+                if (typeof str !== 'undefined' && str !== null && str !== '') msg += ` matching **'${str}'**`;
+                msg += ':\n';
+                msg += '```';
+                msg += '<' + result[0] + '> ' + result[1];
+                msg += '```';
+                await action.reply({
+                    content: msg
+                });
+            }
+            else {
+                let msg = `Sorry, <@${action.user.id}>, there were no quotes`;
+                if (typeof target !== 'undefined' && target !== null && target !== '') msg += ` for **'${target}'**`;
+                if (typeof str !== 'undefined' && str !== null && str !== '') msg += ` matching **'${str}'**`;
+                msg += '.';
+                await action.reply({
+                    content: msg
+                });
+            }
         }
     },
 };

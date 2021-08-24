@@ -1,4 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
+const access = require('../lib/access.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -20,7 +21,7 @@ module.exports = {
             if (math) math += ' + ';
             math += (chr == 32 ? '_' : str[i].toUpperCase()) + `[${dec}]`;
         }
-        const level = bot.level(iact.guild, user), bonus = 10 - str.length + level, result = (ret / str.length) + bonus, imperial = result * 0.393700787,
+        const level = access.level(iact.guild, user), bonus = 10 - str.length + level, result = (ret / str.length) + bonus, imperial = result * 0.393700787,
             centimeters = result.toFixed(2), inches = imperial.toFixed(2);
         await iact.reply({
             content: `**${user.username}'s** penish measurement:\n\`\`\`\n ${math} / LEN[${str.length}] + BONUS[${bonus}] =  ${centimeters}cm (${inches}in)\n\`\`\``

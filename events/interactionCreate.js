@@ -1,7 +1,7 @@
 module.exports = {
     name: 'interactionCreate',
     execute(bot, iact) {
-        if (iact.isCommand()) {
+        if (!iact.user.bot && iact.isCommand()) {
             const command = iact.client.commands.get(iact.commandName);
             if (command) {
                 console.log(`${iact.user.tag} in #${iact.channel.name} executed command: ${iact.commandName}`);

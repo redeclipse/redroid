@@ -12,7 +12,7 @@ module.exports = {
     // Strings
     strtoregex(str) {
         const args = str.match(/^\/(.*?)\/([gimsuy]*)$/);
-        return args ? new RegExp(args[1], args[2]) : new RegExp(str);
+        return args ? new RegExp(args[1], args[2]) : new RegExp(str, 'i');
     },
 
     // Users / Members

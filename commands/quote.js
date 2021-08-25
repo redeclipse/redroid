@@ -19,7 +19,7 @@ module.exports = {
         }
         */
         const target = action.options.getString('target');
-        if (target.slice(0, 2) === '<@') {
+        if (target !== null && target !== '' && target.slice(0, 2) === '<@') {
             await action.reply({
                 content: 'Sorry, searching by Discord ID is not yet supported. Try their IRC nickname?'
             });
@@ -27,9 +27,10 @@ module.exports = {
         else {
             const str = action.options.getString('search'), result = global.quote.query(target, str);
             if (result !== null && result !== '') {
-                let msg = 'Quotes';
-                if (typeof target !== 'undefined' && target !== null && target !== '') msg += ` by **${target}**`;
-                if (typeof str !== 'undefined' && str !== null && str !== '') msg += ` matching **${str}**`;
+                let msg = 'Quoting';
+                if (typeof target !== 'undefined' && target !== null && target !== '') msg += ' **' + result[0] + '**';
+                else msg += ' a random person';
+                if (typeof str !== 'undefined' && str !== null && str !== '') msg += ` for instances of **'${str}'**`;
                 msg += ':\n';
                 msg += '```';
                 msg += '<' + result[0] + '> ' + result[1];
@@ -41,7 +42,7 @@ module.exports = {
             else {
                 let msg = 'Sorry, there were no quotes';
                 if (typeof target !== 'undefined' && target !== null && target !== '') msg += ` by **${target}**`;
-                if (typeof str !== 'undefined' && str !== null && str !== '') msg += ` matching **${str}**`;
+                if (typeof str !== 'undefined' && str !== null && str !== '') msg += ` matching **'${str}'**`;
                 msg += '.';
                 await action.reply({
                     content: msg

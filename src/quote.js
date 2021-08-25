@@ -44,23 +44,38 @@ module.exports = {
     },
     findtarg(target) {
         if (typeof this.quotes[target] === 'undefined' || this.quotes[target] === null) {
-            const targ = target.toLowerCase();
-            if (typeof this.quotes[targ] === 'undefined' || this.quotes[targ] === null) return null;
-            return targ;
+            const keys = Object.keys(this.quotes);
+            if (target.slice(0, 1) === '/') {
+                const regex = global.tools.strtoregex(target);
+                const values = keys.filter(value => value.match(regex));
+                if (values.length > 0) return values[0];
+            }
+            const searches = [ '^' + target + '$', '^' + target, target ];
+            for (let i = 0; i < 2; i++) {
+                for (const search of searches) {
+                    const regex = i != 0 ? new RegExp(search, 'i') : new RegExp(search);
+                    const values = keys.filter(value => value.match(regex));
+                    if (values.length > 0) return values[0];
+                }
+            }
         }
         return target;
     },
     search(target, str) {
-        const regex = global.tools.strtoregex(str);
+        const regex = global.tools.strtoregex(str), matches = {};
         if (typeof target !== 'undefined' && target !== null && target !== '') {
             const targ = this.findtarg(target);
-            if (targ === null) return null;
-            return this.quotes[targ].filter(value => value.match(regex));
+            if (targ !== null && targ !== '' && typeof this.quotes[targ] !== 'undefined' && this.quotes[targ] !== null) {
+                const values = this.quotes[targ].filter(value => value.match(regex));
+                if (values !== null && values.length > 0) matches[targ] = values;
+            }
         }
-        const keys = Object.keys(this.quotes), matches = [];
-        for (const targ of keys) {
-            const values = this.quotes[targ].filter(value => value.match(regex));
-            if (values !== null) matches.push(...values);
+        else {
+            const keys = Object.keys(this.quotes);
+            for (const targ of keys) {
+                const values = this.quotes[targ].filter(value => value.match(regex));
+                if (values !== null && values.length > 0) matches[targ] = values;
+            }
         }
         return matches;
     },
@@ -72,23 +87,27 @@ module.exports = {
     query(target, str) {
         let result = null;
         if (typeof str !== 'undefined' && str !== null && str !== '') {
-            const values = this.search(target, str);
-            const num = global.tools.rand(0, values.length);
-            result = [ target ];
-            result.push(values[num]);
+            const values = this.search(target, str), keys = Object.keys(values);
+            console.log(JSON.stringify(values, null, 2));
+            if (keys.length > 0) {
+                const numt = global.tools.rand(0, keys.length);
+                if (values[keys[numt]].length > 0) {
+                    const numq = global.tools.rand(0, values[keys[numt]].length);
+                    result = [ keys[numt], values[keys[numt]][numq] ];
+                }
+            }
         }
         else if (typeof target !== 'undefined' && target !== null && target !== '') {
             const targ = this.findtarg(target);
-            if (targ === null) return null;
-            const num = global.tools.rand(0, this.quotes[targ].length);
-            result = [ targ ];
-            result.push(this.quotes[targ][num]);
+            if (targ !== null && targ !== '' && typeof this.quotes[targ] !== 'undefined' && this.quotes[targ].length > 0) {
+                const num = global.tools.rand(0, this.quotes[targ].length);
+                result = [ targ, this.quotes[targ][num] ];
+            }
         }
         else {
             const keys = Object.keys(this.quotes);
             const num = global.tools.rand(0, keys.length);
-            result = [ keys[num] ];
-            result.push(this.lookup(keys[num]));
+            result = [ keys[num], this.lookup(keys[num]) ];
         }
         return result;
     },

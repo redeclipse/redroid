@@ -47,7 +47,7 @@ class Bot extends Client {
         // Console redirections
         this.on('error', console.error);
         this.on('warn', console.warn);
-        this.on('debug', console.log);
+        this.on('debug', console.debug);
 
         // Process handlers
         process.on('exit', () => this.shutdown());

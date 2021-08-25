@@ -20,7 +20,7 @@ module.exports = {
         return true;
     },
     shutdown() {
-        for (const word of this.list) this.save(word);
+        // for (const word of this.list) this.save(word);
     },
     save(word) {
         console.log(`Saving dictionary: ./db/dict/${word}.json`);

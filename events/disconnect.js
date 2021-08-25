@@ -7,12 +7,11 @@ module.exports = {
         }
         else if (event.code === 4004) {
             console.error('Failed to authenticate with Discord.');
-            return bot.shutdown(false);
         }
         else {
             console.warn(`Disconnected from Discord with code ${event.code}.`);
         }
 
-        bot.shutdown();
+        bot.shutdown(true);
     }
 };

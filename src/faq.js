@@ -1,14 +1,14 @@
 const fs = require('fs');
 
 module.exports = {
-    name: 'quote',
-    quotes: {},
+    name: 'faq',
+    faqs: {},
     start() {
-        console.log('Loading quotes: ./db/quote.json');
-        const data = fs.readFileSync('./db/quote.json', 'utf-8');
+        console.log('Loading FAQs: ./db/faq.json');
+        const data = fs.readFileSync('./db/faq.json', 'utf-8');
         try {
-            this.quotes = JSON.parse(data);
-            console.log('Quotes loaded ' + Object.keys(this.quotes).length + ' entries.');
+            this.faqs = JSON.parse(data);
+            console.log('FAQs loaded ' + Object.keys(this.faqs).length + ' entries.');
         }
         catch (e) {
             console.log(e);
@@ -19,32 +19,32 @@ module.exports = {
         // this.save();
     },
     save() {
-        console.log('Saving quotes: ./db/quote.json');
+        console.log('Saving FAQs: ./db/faq.json');
         try {
-            fs.accessSync('./db/quote.json', fs.constants.R_OK);
+            fs.accessSync('./db/faq.json', fs.constants.R_OK);
             try {
-                fs.renameSync('./db/quote.json', './db/quote.bak');
-                console.log('Saving quotes backup: ./db/quote.bak');
+                fs.renameSync('./db/faq.json', './db/faq.bak');
+                console.log('Saving FAQs backup: ./db/faq.bak');
             }
             catch (e) {
-                console.log(`Saving quotes backup failed: ./db/quote.bak (${e})`);
+                console.log(`Saving FAQs backup failed: ./db/faq.bak (${e})`);
             }
         }
         catch (e) {
-            console.log(`Saving quotes backup not found: ./db/quote.json (${e})`);
+            console.log(`Saving FAQs backup not found: ./db/faq.json (${e})`);
         }
         try {
-            fs.writeFileSync('./db/quote.json', JSON.stringify(this.quotes, null, 2));
+            fs.writeFileSync('./db/faq.json', JSON.stringify(this.faqs, null, 2));
             return true;
         }
         catch (e) {
-            console.log(`Saving quotes failed: ./db/quote.json (${e})`);
+            console.log(`Saving FAQs failed: ./db/faq.json (${e})`);
             return false;
         }
     },
     findtarg(target) {
-        if (typeof this.quotes[target] === 'undefined' || this.quotes[target] === null) {
-            const keys = Object.keys(this.quotes);
+        if (typeof this.faqs[target] === 'undefined' || this.faqs[target] === null) {
+            const keys = Object.keys(this.faqs);
             if (target.slice(0, 1) === '/') {
                 const regex = global.tools.strtoregex(target);
                 const values = keys.filter(value => value.match(regex));
@@ -65,24 +65,23 @@ module.exports = {
         const regex = global.tools.strtoregex(str), matches = {};
         if (typeof target !== 'undefined' && target !== null && target !== '') {
             const targ = this.findtarg(target);
-            if (targ !== null && targ !== '' && typeof this.quotes[targ] !== 'undefined' && this.quotes[targ] !== null) {
-                const values = this.quotes[targ].filter(value => value.match(regex));
+            if (targ !== null && targ !== '' && typeof this.faqs[targ] !== 'undefined' && this.faqs[targ] !== null) {
+                const values = this.faqs[targ].filter(value => value.match(regex));
                 if (values !== null && values.length > 0) matches[targ] = values;
             }
         }
         else {
-            const keys = Object.keys(this.quotes);
+            const keys = Object.keys(this.faqs);
             for (const targ of keys) {
-                const values = this.quotes[targ].filter(value => value.match(regex));
+                const values = this.faqs[targ].filter(value => value.match(regex));
                 if (values !== null && values.length > 0) matches[targ] = values;
             }
         }
         return matches;
     },
-    lookup(target, index = -1) {
-        if (typeof this.quotes[target] === 'undefined' || this.quotes[target] === null) return null;
-        const num = index >= 0 ? index : global.tools.rand(0, this.quotes[target].length);
-        return this.quotes[target][num];
+    lookup(target) {
+        if (typeof this.faqs[target] === 'undefined' || this.faqs[target] === null) return null;
+        return this.faqs[target];
     },
     query(target, str) {
         let result = null;
@@ -91,20 +90,18 @@ module.exports = {
             if (keys.length > 0) {
                 const numt = global.tools.rand(0, keys.length);
                 if (values[keys[numt]].length > 0) {
-                    const numq = global.tools.rand(0, values[keys[numt]].length);
-                    result = [ keys[numt], values[keys[numt]][numq] ];
+                    result = [ keys[numt], values[keys[numt]] ];
                 }
             }
         }
         else if (typeof target !== 'undefined' && target !== null && target !== '') {
             const targ = this.findtarg(target);
-            if (targ !== null && targ !== '' && typeof this.quotes[targ] !== 'undefined' && this.quotes[targ].length > 0) {
-                const num = global.tools.rand(0, this.quotes[targ].length);
-                result = [ targ, this.quotes[targ][num] ];
+            if (targ !== null && targ !== '' && typeof this.faqs[targ] !== 'undefined' && this.faqs[targ].length > 0) {
+                result = [ targ, this.faqs[targ] ];
             }
         }
         else {
-            const keys = Object.keys(this.quotes);
+            const keys = Object.keys(this.faqs);
             const num = global.tools.rand(0, keys.length);
             result = [ keys[num], this.lookup(keys[num]) ];
         }

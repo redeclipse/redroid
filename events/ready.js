@@ -2,8 +2,6 @@ module.exports = {
     name: 'ready',
     once: true,
     execute(bot, client) {
-        client.user.setAFK(true);
-
         (title => {
             process.title = title;
             process.stdout.write(`\u001B]0;${title}\u0007`);
@@ -17,6 +15,12 @@ module.exports = {
         msg += ` - Guilds: ${client.guilds.cache.size}`;
         console.log(msg);
 
+        // client.user.setAFK(true);
+        client.user.setStatus('online');
+        client.user.setActivity({
+            type: 'WATCHING',
+            name: 'everything you do..'
+        });
         client.loaded = true;
     },
 };

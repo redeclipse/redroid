@@ -1,11 +1,20 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-
 module.exports = {
-    level: 5,
-    data: new SlashCommandBuilder()
-        .setName('admin')
-        .setDescription('Perform an administrative function.')
-        .addStringOption(option => option.setName('function').setDescription('Select a function.')),
+    config: {
+        data: {
+            name: 'admin',
+            description: 'Perform an administrative function.',
+            options: [
+                {
+                    type: 3,
+                    name: 'function',
+                    description: 'Select a function.',
+                    required: false,
+                    choices: undefined
+                }
+            ]
+        },
+        level: 5
+    },
     async execute(bot, action) {
         const func = action.options.getString('function');
         switch (func) {

@@ -5,15 +5,17 @@ const wait = ms => new Promise(_ => setTimeout(_, ms));
 class Bot extends Client {
     // Instantiate the Discord client
     constructor() {
-        super({ intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MEMBERS] });
+        super({
+            intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES, Intents.FLAGS.GUILD_PRESENCES, Intents.FLAGS.GUILD_MEMBERS],
+        });
 
         // Setup globals
         this.config = require('./config.json');
         this.shuttingdown = false;
-        global.sources = [];
 
         // Load source files and start them
         const srcfiles = fs.readdirSync('./src').filter(file => file.endsWith('.js'));
+        global.sources = [];
         for (const file of srcfiles) {
             console.log(`Loading source: ${file}`);
             const name = file.slice(0, -3);
@@ -32,7 +34,7 @@ class Bot extends Client {
         for (const file of commandfiles) {
             console.log(`Loading command: ${file}`);
             const command = require(`./commands/${file}`);
-            this.commands.set(command.data.name, command);
+            this.commands.set(command.config.data.name, command);
         }
 
         // Load events and connect their emitters
@@ -47,7 +49,7 @@ class Bot extends Client {
         // Console redirections
         this.on('error', console.error);
         this.on('warn', console.warn);
-        this.on('debug', console.debug);
+        this.on('debug', console.log);
 
         // Process handlers
         process.on('exit', () => this.shutdown());

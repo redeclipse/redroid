@@ -1,11 +1,20 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-
 module.exports = {
-    level: 1,
-    data: new SlashCommandBuilder()
-        .setName('oracle')
-        .setDescription('Consults the Oracle regarding the future.')
-        .addStringOption(option => option.setName('question').setDescription('Ask a question').setRequired(true)),
+    config: {
+        data: {
+            name: 'oracle',
+            description: 'Consults the Oracle regarding the future.',
+            options: [
+                {
+                    type: 3,
+                    name: 'question',
+                    description: 'Ask a question',
+                    required: true,
+                    choices: undefined
+                }
+            ]
+        },
+        level: 1
+    },
     async execute(bot, action) {
         let question = action.options.getString('question');
         if (question.slice(-1) != '?') question += '?';

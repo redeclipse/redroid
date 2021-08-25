@@ -46,6 +46,11 @@ module.exports = {
             return false;
         }
     },
+    choices() {
+        let result = []; // eslint-disable-line prefer-const
+        for (const word in this.list) result.push({ name: word, value: word });
+        return result;
+    },
     print(sep = ', ') {
         let dosep = false, result = '';
         for (const word of this.list) {

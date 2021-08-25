@@ -1,10 +1,12 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-
 module.exports = {
-    level: 1,
-    data: new SlashCommandBuilder()
-        .setName('ping')
-        .setDescription('Replies with Pong!'),
+    config: {
+        data: {
+            name: 'ping',
+            description: 'Replies with Pong!',
+            options: []
+        },
+        level: 1
+    },
     async execute(bot, action) {
         await action.reply({ content: 'Pong! You smell.' });
     },

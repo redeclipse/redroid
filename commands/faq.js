@@ -1,12 +1,27 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-
 module.exports = {
-    level: 1,
-    data: new SlashCommandBuilder()
-        .setName('faq')
-        .setDescription('Search for quotable moments.')
-        .addStringOption(option => option.setName('target').setDescription('Select target.'))
-        .addStringOption(option => option.setName('search').setDescription('Select search terms.')),
+    config: {
+        data: {
+            name: 'faq',
+            description: 'Search for quotable moments.',
+            options: [
+                {
+                    type: 3,
+                    name: 'target',
+                    description: 'Select target.',
+                    required: false,
+                    choices: undefined
+                },
+                {
+                    type: 3,
+                    name: 'search',
+                    description: 'Select search terms.',
+                    required: false,
+                    choices: undefined
+                }
+            ]
+        },
+        level: 1
+    },
     async execute(bot, action) {
         /*
         <@!189189124194959361>

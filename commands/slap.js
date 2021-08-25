@@ -1,11 +1,19 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-
 module.exports = {
-    level: 1,
-    data: new SlashCommandBuilder()
-        .setName('slap')
-        .setDescription('Slaps someone good.')
-        .addUserOption(option => option.setName('target').setDescription('Select a user')),
+    config: {
+        data: {
+            name: 'slap',
+            description: 'Slaps someone good.',
+            options: [
+                {
+                    type: 6,
+                    name: 'target',
+                    description: 'Select a user',
+                    required: false
+                }
+            ]
+        },
+        level: 1,
+    },
     async execute(bot, action) {
         const user = await global.tools.pickuser(action, 'target');
         let data = `<@${action.user.id}> slaps <@${user.id}> `;

@@ -1,11 +1,19 @@
-const { SlashCommandBuilder } = require('@discordjs/builders');
-
 module.exports = {
-    level: 0,
-    data: new SlashCommandBuilder()
-        .setName('access')
-        .setDescription('Obtains access levels.')
-        .addUserOption(option => option.setName('target').setDescription('Select a user')),
+    config: {
+        data: {
+            name: 'access',
+            description: 'Obtains access levels.',
+            options: [
+                {
+                    type: 6,
+                    name: 'target',
+                    description: 'Select a user',
+                    required: false
+                }
+            ]
+        },
+        level: 0
+    },
     async execute(bot, action) {
         const user = await global.tools.defaultuser(action, 'target');
         const level = global.access.level(action.guild, user);

@@ -9,7 +9,7 @@ module.exports = {
     async execute(bot, action) {
         let question = action.options.getString('question');
         if (question.slice(-1) != '?') question += '?';
-        let data = `<@${action.user.id}> asks: *${question}*\n`;
+        let data = `The Oracle is consulted: *${question}*\n`;
         data += `<@${bot.user.id}> `;
         data += global.dict.query('consult', action.user, action.user, question);
         data += ', the answer is: *';

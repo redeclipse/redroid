@@ -11,22 +11,22 @@ module.exports = {
         switch (func) {
             case 'restart': {
                 await action.reply({
-                    content: `Okay, <@${action.user.id}>, restarting...`
+                    content: 'Okay, restarting...'
                 });
                 action.client.shutdown(true);
                 break;
             }
             case 'shutdown': {
                 await action.reply({
-                    content: `Okay, <@${action.user.id}>, shutting down...`
+                    content: 'Okay, shutting down...'
                 });
                 action.client.shutdown();
                 break;
             }
             default: {
-                let msg = `Sorry, <@${action.user.id}>, `;
-                if (func !== null) msg += `there is no function called **'${func}'**.`;
-                else msg += 'you need to specify a function.';
+                let msg = 'Sorry, ';
+                if (func !== null) msg += `there is no administrative function called **${func}**.`;
+                else msg += 'you need to specify a administrative function.';
                 msg += '\n';
                 msg += 'Valid functions are: **restart, shutdown**';
                 await action.reply({

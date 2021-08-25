@@ -16,7 +16,7 @@ module.exports = {
             }
             else {
                 console.log(`${action.user.tag} in #${action.channel.name} sent invalid command: ${action.commandName}`);
-                action.reply({ content: `Sorry, there is no such command called **'${action.commandName}'**'` });
+                action.reply({ content: `Sorry, there is no such command called **${action.commandName}**` });
             }
         }
     },

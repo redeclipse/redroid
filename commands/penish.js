@@ -8,8 +8,8 @@ module.exports = {
         .addUserOption(option => option.setName('target').setDescription('Select a user')),
     magic: [12, 8, 20, 15, 8, 1, 6, 9, 15, -2, -21, -2, 5, 12, 19, 5, 8, -12, 6, -2, 14, 9, -8, 1, 6, -9, 15, 2, 21, 2, -8, 12, -19, 5, 8, -20],
     async execute(bot, action) {
-        const user = global.tools.defaultuser(action, 'target');
-        const str = user.username.toLowerCase();
+        const member = await global.tools.defaultmember(action, 'target');
+        const str = member.displayName.toLowerCase();
         let ret = 0, math = '';
         for (let i = 0; i < str.length; i++) {
             const chr = str.charCodeAt(i), man = this.magic[i];
@@ -20,10 +20,22 @@ module.exports = {
             if (math) math += ' + ';
             math += (chr == 32 ? '_' : str[i].toUpperCase()) + `[${dec}]`;
         }
-        const level = global.access.level(action.guild, user), bonus = 10 - str.length + level, result = (ret / str.length) + bonus, imperial = result * 0.393700787,
+        const level = global.access.level(action.guild, member.user), bonus = 10 - str.length, inter = ret / str.length, result = inter + bonus + level, imperial = result * 0.393700787,
             centimeters = result.toFixed(2), inches = imperial.toFixed(2);
+        let msg = `Penish measurement for <@${member.user.id}>:\n`;
+        msg += '```\n';
+        msg += `${math} / LEN[${str.length}] + BONUS[${bonus}]`;
+        if (level > 0) msg += ` + LEVEL[${level}]`;
+        msg += '\n';
+        msg += `= ${ret} / ${str.length} + ${bonus}`;
+        if (level > 0) msg += ` + ${level}`;
+        msg += ` = ${inter} + ${bonus}`;
+        if (level > 0) msg += ` + ${level}`;
+        msg += '\n';
+        msg += `= ${centimeters}cm [${inches}in]\n`;
+        msg += '```\n';
         await action.reply({
-            content: `<@${user.id}>'s penish measurement:\n\`\`\`\n ${math} / LEN[${str.length}] + BONUS[${bonus}] =  ${centimeters}cm (${inches}in)\n\`\`\``
+            content: msg
         });
     },
 };

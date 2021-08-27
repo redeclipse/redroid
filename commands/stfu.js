@@ -18,17 +18,16 @@ module.exports = {
         },
         level: 1
     },
-    async execute(bot, action) {
-        const user = await global.tools.pickuser(action, 'user');
+    execute(bot, action) {
+        const user = global.tools.pickuser(action, 'user');
         let data = `<@${action.user.id}> `;
         data += global.dict.query('insert', action.user, user);
         data += ' ';
         data += global.dict.query('object', action.user, user);
         data += ` into <@${user.id}>'s `;
         data += global.dict.query('orifice', action.user, user);
-        data += ' and tells them to shut the fuck up';
-        await action.reply({
-            content: data
-        });
+        data += ' and tells them to ';
+        data += global.dict.query('stfu', action.user, user);
+        action.reply({ content: data });
     },
 };

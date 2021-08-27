@@ -7,7 +7,7 @@ module.exports = {
         },
         level: 1
     },
-    async execute(bot, action) {
-        await action.reply({ content: 'Pong! You smell.' });
+    execute(bot, action) {
+        action.reply({ content: 'Pong! You smell.' });
     },
 };

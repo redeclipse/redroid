@@ -2,6 +2,23 @@ const fs = require('fs');
 const { Client, Collection, Intents } = require('discord.js');
 const wait = ms => new Promise(_ => setTimeout(_, ms));
 
+global.log = {
+    bot: null,
+    error(str, ...args) {
+        console.error(str, ...args);
+        if (this.bot) this.bot.log('ERROR', str, ...args);
+    },
+    out(str, ...args) {
+        console.log(str, ...args);
+        if (this.bot) this.bot.log('LOG', str, ...args);
+    },
+    warn(str, ...args) {
+        console.warn(str, ...args);
+        if (this.bot) this.bot.log('WARN', str, ...args);
+    }
+};
+
+
 class Bot extends Client {
     // Instantiate the Discord client
     constructor() {
@@ -11,20 +28,21 @@ class Bot extends Client {
 
         // Setup globals
         this.config = require('./config.json');
-        this.shuttingdown = false;
+        this.shuttingdown = this.online = false;
+        global.log.bot = this;
 
         // Load source files and start them
         const srcfiles = fs.readdirSync('./src').filter(file => file.endsWith('.js'));
         global.sources = [];
         for (const file of srcfiles) {
-            console.log(`Loading source: ${file}`);
+            global.log.out(`Loading source: ${file}`);
             const name = file.slice(0, -3);
             global[name] = require(`./src/${file}`);
             try {
                 if (global[name].start(this)) global.sources.push(name);
             }
             catch (e) {
-                console.error(e);
+                global.log.error(e);
             }
         }
 
@@ -32,43 +50,48 @@ class Bot extends Client {
         this.commands = new Collection();
         const commandfiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
         for (const file of commandfiles) {
-            console.log(`Loading command: ${file}`);
+            global.log.out(`Loading command: ${file}`);
             const command = require(`./commands/${file}`);
-            if (typeof command.config.chat !== 'undefined') this.commands.set(command.config.chat.name, command);
-            if (typeof command.config.user !== 'undefined') this.commands.set(command.config.user.name, command);
-            if (typeof command.config.mesg !== 'undefined') this.commands.set(command.config.mesg.name, command);
+            if (command.config) {
+                if (command.config.chat) this.commands.set(command.config.chat.name, command);
+                if (command.config.user) this.commands.set(command.config.user.name, command);
+                if (command.config.mesg) this.commands.set(command.config.mesg.name, command);
+            }
+            else {global.log.error('ERROR: Command provides no config.');}
         }
 
         // Load events and connect their emitters
         const eventfiles = fs.readdirSync('./events').filter(file => file.endsWith('.js'));
         for (const file of eventfiles) {
-            console.log(`Loading event: ${file}`);
+            global.log.out(`Loading event: ${file}`);
             const event = require(`./events/${file}`);
             if (event.once) this.once(event.name, (...args) => event.execute(this, ...args));
             else this.on(event.name, (...args) => event.execute(this, ...args));
         }
 
         // Console redirections
-        this.on('error', console.error);
-        this.on('warn', console.warn);
-        this.on('debug', console.log);
+        this.on('error', global.log.error);
+        this.on('warn', global.log.warn);
+        this.on('debug', global.log.out);
 
         // Process handlers
         process.on('exit', () => this.shutdown());
 
         process.on('uncaughtException', (err) => {
-            const errorMsg = (err ? err.stack || err : '').toString();
-            console.error(errorMsg);
+            const msg = (err ? err.stack || err : '').toString();
+            global.log.error(`Uncaught exception:\n ${msg}`);
             if (this.shuttingdown) {
-                if (this.loaded) this.destroy();
+                this.kill();
                 this.emit('shutdown', false);
             }
         });
 
         process.on('unhandledRejection', err => {
-            console.error('Uncaught promise error: \n' + err.stack);
+            const msg = (err ? err.stack || err : '').toString();
+            global.log.error(`Unhandled rejection:\n ${msg}`);
+            console.trace();
             if (this.shuttingdown) {
-                if (this.loaded) this.destroy();
+                this.kill();
                 this.emit('shutdown', false);
             }
         });
@@ -79,38 +102,56 @@ class Bot extends Client {
         process.on('SIGHUP', () => this.shutdown(true));
     }
 
+    kill() {
+        global.log.bot = null;
+        this.online = false;
+        this.destroy();
+    }
+
     start() {
         if (!this.config) return false;
         this.login(this.config.token);
         return true;
     }
 
-    async shutdown(restart = false) {
+    shutdown(restart = false) {
         if (this.shuttingdown) return;
-        console.log('Shutdown request received...');
+        global.log.out('Shutdown request received...');
         this.shuttingdown = true;
         for (const source of global.sources) {
             const src = global[source];
             if (typeof mod === 'object') {
-                console.log(`Shutting down source: ${src.name ? src.name : source}`);
+                global.log.out(`Shutting down source: ${src.name ? src.name : source}`);
                 if (typeof src.shutdown === 'function') src.shutdown();
             }
         }
-        if (this.loaded) this.destroy();
+        this.kill();
         this.emit('shutdown', restart);
+    }
+
+    log(type, str, ...args) {
+        if (this.online !== true || !this.config.logId) return;
+        const chan = this.channels.cache.get(this.config.logId);
+        let msg = `[${type}] ${str}`;
+        if (args && args.length > 0) {
+            msg += '\n```\n';
+            msg += JSON.stringify(args, null, 2);
+            msg += '```';
+        }
+        chan.send(msg);
     }
 }
 
 const start = () => {
     const bot = new Bot();
-    bot.once('shutdown', async (reboot) => {
+    bot.once('shutdown', (reboot) => {
         if (reboot) {
-            console.log('Process has exited. Rebooting...');
-            await wait(3000);
+            global.log.out('Process has exited. Rebooting...');
+            wait(3000);
             start();
         }
         else {
-            console.log('Process has exited cleanly.');
+            global.log.out('Process has exited cleanly.');
             process.exit(0);
         }
     });

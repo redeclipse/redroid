@@ -9,13 +9,13 @@ module.exports = {
                     name: 'question',
                     description: 'Ask a question',
                     required: true,
-                    choices: undefined
+                    choices: null
                 }
             ]
         },
         level: 1
     },
-    async execute(bot, action) {
+    execute(bot, action) {
         let question = action.options.getString('question');
         if (question.slice(-1) != '?') question += '?';
         let data = `The Oracle is consulted: *${question}*\n`;
@@ -25,8 +25,6 @@ module.exports = {
         // TODO: add random answers from quotes?
         data += global.dict.query('answer', action.user, action.user, question);
         data += '*';
-        await action.reply({
-            content: data
-        });
+        action.reply({ content: data });
     },
 };

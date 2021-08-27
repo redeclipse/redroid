@@ -18,16 +18,14 @@ module.exports = {
         },
         level: 1
     },
-    async execute(bot, action) {
-        const user = await global.tools.pickuser(action, 'user');
+    execute(bot, action) {
+        const user = global.tools.pickuser(action, 'user');
         let data = `<@${user.id}> was `;
         data += global.dict.query('transmit', action.user, user);
         data += ' with ';
         data += global.dict.query('region', action.user, user);
         data += ' ';
         data += global.dict.query('disease', action.user, user);
-        await action.reply({
-            content: data
-        });
+        action.reply({ content: data });
     },
 };

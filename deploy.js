@@ -17,9 +17,12 @@ const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('
 for (const file of commandFiles) {
     console.log(`Loading command: ${file}`);
     const command = require(`./commands/${file}`);
-    if (typeof command.config.chat !== 'undefined') commands.push(command.config.chat);
-    if (typeof command.config.user !== 'undefined') commands.push(command.config.user);
-    if (typeof command.config.mesg !== 'undefined') commands.push(command.config.mesg);
+    if (command.config) {
+        if (command.config.chat) commands.push(command.config.chat);
+        if (command.config.user) commands.push(command.config.user);
+        if (command.config.mesg) commands.push(command.config.mesg);
+    }
+    else { console.error('ERROR: Command provides no config.'); }
 }
 
 const rest = new REST({ version: '9' }).setToken(token);

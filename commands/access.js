@@ -14,11 +14,9 @@ module.exports = {
         },
         level: 0
     },
-    async execute(bot, action) {
-        const user = await global.tools.defaultuser(action, 'target');
+    execute(bot, action) {
+        const user = global.tools.defaultuser(action, 'target');
         const level = global.access.level(action.guild, user);
-        await action.reply({
-            content: `<@${user.id}>'s level is: ** ${level} **`
-        });
+        action.reply({ content: `<@${user.id}>'s level is: ${level}` });
     },
 };

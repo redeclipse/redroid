@@ -4,14 +4,14 @@ module.exports = {
     name: 'quote',
     quotes: {},
     start() {
-        console.log('Loading quotes: ./db/quote.json');
+        global.log.out('Loading quotes: ./db/quote.json');
         const data = fs.readFileSync('./db/quote.json', 'utf-8');
         try {
             this.quotes = JSON.parse(data);
-            console.log('Quotes loaded ' + Object.keys(this.quotes).length + ' entries.');
+            global.log.out('Quotes loaded ' + Object.keys(this.quotes).length + ' entries.');
         }
         catch (e) {
-            console.log(e);
+            global.log.out(e);
         }
         return true;
     },
@@ -19,31 +19,31 @@ module.exports = {
         // this.save();
     },
     save() {
-        console.log('Saving quotes: ./db/quote.json');
+        global.log.out('Saving quotes: ./db/quote.json');
         try {
             fs.accessSync('./db/quote.json', fs.constants.R_OK);
             try {
                 fs.renameSync('./db/quote.json', './db/quote.bak');
-                console.log('Saving quotes backup: ./db/quote.bak');
+                global.log.out('Saving quotes backup: ./db/quote.bak');
             }
             catch (e) {
-                console.log(`Saving quotes backup failed: ./db/quote.bak (${e})`);
+                global.log.out(`Saving quotes backup failed: ./db/quote.bak (${e})`);
             }
         }
         catch (e) {
-            console.log(`Saving quotes backup not found: ./db/quote.json (${e})`);
+            global.log.out(`Saving quotes backup not found: ./db/quote.json (${e})`);
         }
         try {
             fs.writeFileSync('./db/quote.json', JSON.stringify(this.quotes, null, 2));
             return true;
         }
         catch (e) {
-            console.log(`Saving quotes failed: ./db/quote.json (${e})`);
+            global.log.out(`Saving quotes failed: ./db/quote.json (${e})`);
             return false;
         }
     },
     findtarg(target) {
-        if (typeof this.quotes[target] === 'undefined' || this.quotes[target] === null) {
+        if (!this.quotes[target]) {
             const keys = Object.keys(this.quotes);
             if (target.slice(0, 1) === '/') {
                 const regex = global.tools.strtoregex(target);
@@ -63,30 +63,30 @@ module.exports = {
     },
     search(target, str) {
         const regex = global.tools.strtoregex(str), matches = {};
-        if (typeof target !== 'undefined' && target !== null && target !== '') {
+        if (target) {
             const targ = this.findtarg(target);
-            if (targ !== null && targ !== '' && typeof this.quotes[targ] !== 'undefined' && this.quotes[targ] !== null) {
+            if (targ && this.quotes[targ]) {
                 const values = this.quotes[targ].filter(value => value.match(regex));
-                if (values !== null && values.length > 0) matches[targ] = values;
+                if (values && values.length > 0) matches[targ] = values;
             }
         }
         else {
             const keys = Object.keys(this.quotes);
             for (const targ of keys) {
                 const values = this.quotes[targ].filter(value => value.match(regex));
-                if (values !== null && values.length > 0) matches[targ] = values;
+                if (values && values.length > 0) matches[targ] = values;
             }
         }
         return matches;
     },
     lookup(target, index = -1) {
-        if (typeof this.quotes[target] === 'undefined' || this.quotes[target] === null) return null;
+        if (!this.quotes[target]) return null;
         const num = index >= 0 ? index : global.tools.rand(0, this.quotes[target].length);
         return this.quotes[target][num];
     },
     query(target, str) {
         let result = null;
-        if (typeof str !== 'undefined' && str !== null && str !== '') {
+        if (str) {
             const values = this.search(target, str), keys = Object.keys(values);
             if (keys.length > 0) {
                 const numt = global.tools.rand(0, keys.length);
@@ -96,9 +96,9 @@ module.exports = {
                 }
             }
         }
-        else if (typeof target !== 'undefined' && target !== null && target !== '') {
+        else if (target) {
             const targ = this.findtarg(target);
-            if (targ !== null && targ !== '' && typeof this.quotes[targ] !== 'undefined' && this.quotes[targ].length > 0) {
+            if (targ && this.quotes[targ] && this.quotes[targ].length > 0) {
                 const num = global.tools.rand(0, this.quotes[targ].length);
                 result = [ targ, this.quotes[targ][num] ];
             }
@@ -110,4 +110,15 @@ module.exports = {
         }
         return result;
     },
+    add(target, str) {
+        let targ = target;
+        const keys = Object.keys(this.quotes);
+        const regex = new RegExp(target, 'i');
+        const values = keys.filter(value => value.match(regex));
+        if (values.length > 0) targ = values[0];
+        if (!targ) return null;
+        if (!this.quotes[targ]) this.quotes[targ] = [];
+        this.quotes[targ].push(str);
+        return this.quotes[targ].last();
+    }
 };

@@ -19,8 +19,8 @@ module.exports = {
         level: 1
     },
     magic: [12, 8, 20, 15, 8, 1, 6, 9, 15, -2, -21, -2, 5, 12, 19, 5, 8, -12, 6, -2, 14, 9, -8, 1, 6, -9, 15, 2, 21, 2, -8, 12, -19, 5, 8, -20],
-    async execute(bot, action) {
-        const member = await global.tools.defaultmember(action, 'user');
+    execute(bot, action) {
+        const member = global.tools.defaultmember(action, 'user');
         const str = member.displayName.toLowerCase();
         let ret = 0, math = '';
         for (let i = 0; i < str.length; i++) {
@@ -46,8 +46,6 @@ module.exports = {
         msg += '\n';
         msg += `= ${centimeters}cm [${inches}in]\n`;
         msg += '```\n';
-        await action.reply({
-            content: msg
-        });
+        action.reply({ content: msg });
     },
 };

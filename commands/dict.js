@@ -1,6 +1,6 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'dict',
             description: 'Operate on the dictionaries.',
             options: [

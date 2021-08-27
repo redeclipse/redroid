@@ -34,7 +34,9 @@ class Bot extends Client {
         for (const file of commandfiles) {
             console.log(`Loading command: ${file}`);
             const command = require(`./commands/${file}`);
-            this.commands.set(command.config.data.name, command);
+            if (typeof command.config.chat !== 'undefined') this.commands.set(command.config.chat.name, command);
+            if (typeof command.config.user !== 'undefined') this.commands.set(command.config.user.name, command);
+            if (typeof command.config.mesg !== 'undefined') this.commands.set(command.config.mesg.name, command);
         }
 
         // Load events and connect their emitters

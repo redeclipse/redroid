@@ -1,6 +1,6 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'ping',
             description: 'Replies with Pong!',
             options: []

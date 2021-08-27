@@ -1,6 +1,6 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'access',
             description: 'Obtains access levels.',
             options: [

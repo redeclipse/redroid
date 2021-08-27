@@ -1,6 +1,6 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'admin',
             description: 'Perform an administrative function.',
             options: [

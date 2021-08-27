@@ -1,6 +1,6 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'mud',
             description: 'Prints an multi user dungeon event.',
             options: [

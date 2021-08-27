@@ -1,6 +1,6 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'oracle',
             description: 'Consults the Oracle regarding the future.',
             options: [

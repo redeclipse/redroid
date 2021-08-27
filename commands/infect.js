@@ -1,21 +1,25 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'infect',
-            description: 'Prints an multi user dungeon event.',
+            description: 'Infect people with various things.',
             options: [
                 {
                     type: 6,
-                    name: 'target',
+                    name: 'user',
                     description: 'Select a user',
                     required: false
                 }
             ]
         },
+        user: {
+            name: 'Infect',
+            type: 2
+        },
         level: 1
     },
     async execute(bot, action) {
-        const user = await global.tools.pickuser(action, 'target');
+        const user = await global.tools.pickuser(action, 'user');
         let data = `<@${user.id}> was `;
         data += global.dict.query('transmit', action.user, user);
         data += ' with ';

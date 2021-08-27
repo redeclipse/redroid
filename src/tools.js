@@ -22,7 +22,7 @@ module.exports = {
     },
     async randomuser(action, value) {
         let user = action.options.getUser(value);
-        if (user === null || user.id === action.user.id) {
+        if (user === null) {
             const members = await action.guild.members.fetch();
             user = members.filter(m => m.user.id !== action.user.id).random().user;
         }

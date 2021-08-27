@@ -1,20 +1,25 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'stfu',
             description: 'Tells someone to STFU.',
             options: [
                 {
                     type: 6,
-                    name: 'target',
+                    name: 'user',
                     description: 'Select a user',
                     required: false
                 }
             ]
-        }, level: 1
+        },
+        user: {
+            name: 'Stfu',
+            type: 2
+        },
+        level: 1
     },
     async execute(bot, action) {
-        const user = await global.tools.pickuser(action, 'target');
+        const user = await global.tools.pickuser(action, 'user');
         let data = `<@${action.user.id}> `;
         data += global.dict.query('insert', action.user, user);
         data += ' ';

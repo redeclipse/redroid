@@ -1,6 +1,6 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'quote',
             description: 'Search for quotable moments.',
             options: [

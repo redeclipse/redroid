@@ -1,21 +1,26 @@
 module.exports = {
     config: {
-        data: {
+        chat: {
             name: 'penish',
             description: 'Measures penishes.',
             options: [
                 {
                     type: 6,
-                    name: 'target',
+                    name: 'user',
                     description: 'Select a user',
                     required: false
                 }
             ]
         },
+        user: {
+            name: 'Penish',
+            type: 2
+        },
         level: 1
     },
+    magic: [12, 8, 20, 15, 8, 1, 6, 9, 15, -2, -21, -2, 5, 12, 19, 5, 8, -12, 6, -2, 14, 9, -8, 1, 6, -9, 15, 2, 21, 2, -8, 12, -19, 5, 8, -20],
     async execute(bot, action) {
-        const member = await global.tools.defaultmember(action, 'target');
+        const member = await global.tools.defaultmember(action, 'user');
         const str = member.displayName.toLowerCase();
         let ret = 0, math = '';
         for (let i = 0; i < str.length; i++) {

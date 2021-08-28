@@ -6,7 +6,7 @@ module.exports = {
             options: [
                 {
                     type: 6,
-                    name: 'target',
+                    name: 'user',
                     description: 'Select a user',
                     required: false
                 }
@@ -15,14 +15,17 @@ module.exports = {
         level: 0
     },
     async execute(bot, action) {
-        const user = global.tools.defaultuser(action, 'target');
+        const user = global.tools.defaultuser(action, 'user');
         const level = global.access.level(action.guild, user);
-        action.reply({
-            embeds: [{
-                color: 0x8888ff,
-                title: `👤 Access: <@${user.id}>`,
-                description: `Level: ${level}`
-            }]
-        });
+        if (level >= 0) {
+            action.reply({
+                embeds: [{
+                    color: 0x8888ff,
+                    title: '👤 Access',
+                    description: `<@${user.id}>'s level is: ${level}`
+                }]
+            });
+        }
+        else { action.reply({ content: 'https://www.youtube.com/watch?v=SiMHTK15Pik' }); }
     },
 };

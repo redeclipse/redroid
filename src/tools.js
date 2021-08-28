@@ -60,17 +60,21 @@ module.exports = {
         return result;
     },
 
-    embedfields(embed, list) {
+    embedfields(embed, list, page = 0) {
+        const offset = page * 24;
         let count = 0, more = 0, amount = 0;
         for (const result in list) {
-            if (amount >= 24) { more++; }
-            else {
-                const index = parseInt(result, 10) + 1;
-                embed.fields.push({ name: `[${index}]`, value: list[result], inline: true });
-                amount++;
+            if (count >= offset) {
+                if (amount >= 24) { more++; }
+                else {
+                    const index = parseInt(result, 10) + 1;
+                    embed.fields.push({ name: `[${index}]`, value: list[result], inline: true });
+                    amount++;
+                }
             }
             count++;
         }
-        return { count: count, more: more, amount: amount };
+        const pages = Math.ceil(count / 24) - 1;
+        return { count: count, more: more, amount: amount, page: { cur: page, num: pages } };
     }
 };

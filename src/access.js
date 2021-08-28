@@ -7,6 +7,7 @@ module.exports = {
         const member = guild.members.resolve(user);
         switch (guild.id) {
             case '224638962050793474': {
+                if (member.id === '879328623297957949') return -1;
                 if (member.id === '189189124194959361' || member.id === '854993935831138323') return 10;
                 if (member.roles.cache.find(r => r.name === 'Developers')) return 6;
                 if (member.roles.cache.find(r => r.name === 'Administrators')) return 5;

@@ -89,7 +89,6 @@ class Bot extends Client {
         process.on('unhandledRejection', err => {
             const msg = (err ? err.stack || err : '').toString();
             global.log.error(`Unhandled rejection:\n ${msg}`);
-            console.trace();
             if (this.shuttingdown) {
                 this.kill();
                 this.emit('shutdown', false);

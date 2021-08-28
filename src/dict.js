@@ -79,24 +79,13 @@ module.exports = {
         this.save(word);
         return this.words[word][this.words[word].length - 1];
     },
-    remove(word, str) {
+    remove(word, list) {
         this.check(word);
-        let data = [];
-        if (str[0] == '/') {
-            const regex = global.tools.strtoregex(str);
-            data = this.words[word].filter(value => value.match(regex));
-        }
-        else { data = this.words[word].filter(value => value === str); }
-        if (data.length < 1) throw `Dictionary '${word}' has no matches for '${str}'.`;
-        if (data.length > 1) throw `Too many matches in '${word}' dictionary for '${str}' (${data.length}).`; // TODO: add ability to confirm mass deletes
-        let narr = [];
-        if (str[0] == '/') {
-            const regex = global.tools.strtoregex(str);
-            narr = this.words[word].filter(value => !value.match(regex));
-        }
-        else { narr = this.words[word].filter(value => value !== str); }
-        this.words[word] = narr;
+        const len = this.words[word].length;
+        const data = this.words[word].filter(value => !list.includes(value));
+        if (data.length <= 0) throw 'Remove request reduces dictionary to zero.';
+        this.words[word] = data;
         this.save(word);
-        return data;
+        return len - this.words[word].length;
     },
 };

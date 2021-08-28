@@ -92,7 +92,7 @@ module.exports = {
                 const numt = global.tools.rand(0, keys.length);
                 if (values[keys[numt]].length > 0) {
                     const numq = global.tools.rand(0, values[keys[numt]].length);
-                    result = [ keys[numt], values[keys[numt]][numq] ];
+                    result = { name: keys[numt], value: values[keys[numt]][numq] };
                 }
             }
         }
@@ -100,13 +100,13 @@ module.exports = {
             const targ = this.findtarg(target);
             if (targ && this.quotes[targ] && this.quotes[targ].length > 0) {
                 const num = global.tools.rand(0, this.quotes[targ].length);
-                result = [ targ, this.quotes[targ][num] ];
+                result = { name: targ, value: this.quotes[targ][num] };
             }
         }
         else {
             const keys = Object.keys(this.quotes);
             const num = global.tools.rand(0, keys.length);
-            result = [ keys[num], this.lookup(keys[num]) ];
+            result = { name: keys[num], value: this.lookup(keys[num]) };
         }
         return result;
     },

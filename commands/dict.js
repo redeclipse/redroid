@@ -69,14 +69,16 @@ module.exports = {
                 },
             ]
         },
-        level: 1
+        level: 1,
+        level_add: 2,
+        level_remove: 2
     },
     getdict(action) {
         const word = action.options.getString('dictionary');
         global.dict.check(word);
         return word;
     },
-    execute(bot, action) {
+    async execute(bot, action) {
         const func = action.options.getSubcommand();
         switch (func) {
             case 'search': {
@@ -89,17 +91,9 @@ module.exports = {
                         fields: [],
                         footer: { text: '' }
                     };
-                    let count = 0, more = 0;
-                    for (const result in list) {
-                        if (embed.fields.length >= 24) { more++; }
-                        else {
-                            const index = parseInt(result, 10) + 1;
-                            embed.fields.push({ name: `[${index}]`, value: list[result], inline: true });
-                        }
-                        count++;
-                    }
-                    if (more) embed.footer.text += `Results truncated, showing ${embed.fields.length} of ${count} match(es).`;
-                    else embed.footer.text += `There are a total of ${count} match(es).`;
+                    const result = global.tools.embedfields(embed, list);
+                    if (result.more) embed.footer.text += `Results truncated, showing ${result.amount} of ${result.count} match(es).`;
+                    else embed.footer.text += `There are a total of ${result.count} match(es).`;
                     action.reply({
                         embeds: [embed]
                     });
@@ -108,22 +102,31 @@ module.exports = {
                 break;
             }
             case 'add': {
+                if (this.config.level_add > global.access.level(action.guild, action.user)) throw `Access level '${this.config.level_add}' is required.`;
                 const word = this.getdict(action), str = action.options.getString('string'), ret = global.dict.add(word, str);
-                action.reply({ content: `Okay, added to the '${word}' dictionary: ${ret}` });
+                action.reply({
+                    embeds: [{
+                        color: 0x8888ff,
+                        title: `📕 Dictionary: ${word}`,
+                        description: `Added: ${ret}`
+                    }]
+                });
                 break;
             }
             case 'remove': {
-                const word = this.getdict(action), str = action.options.getString('string'), ret = global.dict.remove(word, str);
-                let msg = `Okay, removed from the '${word}' dictionary:`;
-                if (ret.length > 1) {
-                    msg += '\n```\n';
-                    for (const value in ret) {
-                        msg += `${value}\n`;
-                    }
-                    msg += '```';
-                }
-                else { msg += ` ${ret}`; }
-                action.reply({ content: msg });
+                if (this.config.level_remove > global.access.level(action.guild, action.user)) throw `Access level '${this.config.level_remove}' is required.`;
+                const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.remove(word, str);
+                const embed = {
+                    color: 0x8888ff,
+                    title: `📕 Dictionary: ${word}`,
+                    description: 'Removed:',
+                    fields: [],
+                    footer: { text: '' }
+                };
+                const result = global.tools.embedfields(embed, list);
+                if (result.more) embed.footer.text += `Results truncated, showing ${result.amount} of ${result.count} removal(s).`;
+                else embed.footer.text += `There were a total of ${result.count} removal(s).`;
+                action.reply({ embeds: [ embed ] });
                 break;
             }
             default: {

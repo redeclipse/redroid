@@ -22,7 +22,7 @@ module.exports = {
         },
         level: 1,
     },
-    execute(bot, action) {
+    async execute(bot, action) {
         /*
         <@!189189124194959361>
         if (target) {
@@ -39,20 +39,20 @@ module.exports = {
         const str = action.options.getString('search'), result = global.quote.query(target, str);
         if (!result) {
             let msg = 'There are no quotes';
-            if (target) msg += ` by '${target}''`;
+            if (target) msg += ` by '${target}'`;
             if (str) msg += ` matching '${str}'`;
             msg += '.';
             throw msg;
         }
 
-        let msg = 'Quoting';
-        if (target) msg += ' \'' + result[0] + '\'';
-        else msg += ' a random person';
-        if (str) msg += ` for instances of '${str}'`;
-        msg += ':\n';
-        msg += '```';
-        msg += '<' + result[0] + '> ' + result[1];
-        msg += '```';
-        action.reply({ content: msg });
+        const embed = {
+            color: 0x8888ff,
+            title: '💬 Quote',
+            description: `${target ? result.name : 'A random person'} once said:\n`
+        };
+        embed.description += '```\n';
+        embed.description += '<' + result.name + '> ' + result.value;
+        embed.description += '```';
+        action.reply({ embeds: [ embed ] });
     },
 };

@@ -90,20 +90,20 @@ module.exports = {
             if (keys.length > 0) {
                 const numt = global.tools.rand(0, keys.length);
                 if (values[keys[numt]].length > 0) {
-                    result = [ keys[numt], values[keys[numt]] ];
+                    result = { name: keys[numt], value: values[keys[numt]] };
                 }
             }
         }
         else if (target) {
             const targ = this.findtarg(target);
             if (targ && this.faqs[targ] && this.faqs[targ].length > 0) {
-                result = [ targ, this.faqs[targ] ];
+                result = { name: targ, value: this.faqs[targ] };
             }
         }
         else {
             const keys = Object.keys(this.faqs);
             const num = global.tools.rand(0, keys.length);
-            result = [ keys[num], this.lookup(keys[num]) ];
+            result = { name: keys[num], vale: this.lookup(keys[num]) };
         }
         return result;
     },

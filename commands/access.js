@@ -14,9 +14,15 @@ module.exports = {
         },
         level: 0
     },
-    execute(bot, action) {
+    async execute(bot, action) {
         const user = global.tools.defaultuser(action, 'target');
         const level = global.access.level(action.guild, user);
-        action.reply({ content: `<@${user.id}>'s level is: ${level}` });
+        action.reply({
+            embeds: [{
+                color: 0x8888ff,
+                title: `👤 Access: <@${user.id}>`,
+                description: `Level: ${level}`
+            }]
+        });
     },
 };

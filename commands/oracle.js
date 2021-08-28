@@ -15,16 +15,21 @@ module.exports = {
         },
         level: 1
     },
-    execute(bot, action) {
+    async execute(bot, action) {
         let question = action.options.getString('question');
         if (question.slice(-1) != '?') question += '?';
-        let data = `The Oracle is consulted: *${question}*\n`;
-        data += `<@${bot.user.id}> `;
-        data += global.dict.query('consult', action.user, action.user, question);
-        data += ', the answer is: *';
+        const embed = {
+            color: 0x8888ff,
+            title: '🎱 Oracle',
+            description: `<@${action.user.id}> asks: *${question}*\n\n`
+        };
+        embed.description += `<@${bot.user.id}> `;
+        embed.description += global.dict.query('consult', action.user, action.user, question);
+        embed.description += ', the answer is: ';
         // TODO: add random answers from quotes?
-        data += global.dict.query('answer', action.user, action.user, question);
-        data += '*';
-        action.reply({ content: data });
+        embed.description += '*';
+        embed.description += global.dict.query('answer', action.user, action.user, question);
+        embed.description += '*';
+        action.reply({ embeds: [embed] });
     },
 };

@@ -2,13 +2,13 @@ const fs = require('fs');
 
 module.exports = {
     name: 'dict',
-    list: [ 'action', 'adverb', 'answer', 'consult', 'disease', 'insert', 'killed', 'object', 'orifice', 'region', 'stfu', 'style', 'transmit', 'verb', 'weapon' ],
+    list: [ 'action', 'adverb', 'answer', 'assault', 'consult', 'disease', 'insert', 'killed', 'object', 'orifice', 'region', 'stfu', 'style', 'transmit', 'verb', 'weapon' ],
     words: {},
     start() {
         for (const word of this.list) {
             global.log.out(`Loading dictionary: ./db/dict/${word}.json`);
-            const data = fs.readFileSync(`./db/dict/${word}.json`, 'utf-8');
             try {
+                const data = fs.readFileSync(`./db/dict/${word}.json`, 'utf-8');
                 this.words[word] = JSON.parse(data);
                 global.log.out(`Dictionary '${word}' loaded ` + this.words[word].length + ' entries.');
             }
@@ -52,7 +52,7 @@ module.exports = {
     },
     check(word) {
         if (!word) throw `No dictionary name provided. Valid dictionaries are: ${this.print()}`;
-        if (!this.words[word]) throw `Invalid dictionary '${word}''. Valid dictionaries are: ${this.print()}`;
+        if (!this.words[word]) throw `Invalid dictionary '${word}'. Valid dictionaries are: ${this.print()}`;
     },
     search(word, str) {
         this.check(word);
@@ -88,7 +88,7 @@ module.exports = {
         }
         else { data = this.words[word].filter(value => value === str); }
         if (data.length < 1) throw `Dictionary '${word}' has no matches for '${str}'.`;
-        if (data.length > 1) throw `Too many matches in '${word}'' for '${str}' (${data.length}).`; // TODO: add ability to confirm mass deletes
+        if (data.length > 1) throw `Too many matches in '${word}' dictionary for '${str}' (${data.length}).`; // TODO: add ability to confirm mass deletes
         let narr = [];
         if (str[0] == '/') {
             const regex = global.tools.strtoregex(str);

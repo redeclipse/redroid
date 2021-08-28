@@ -2,7 +2,7 @@ module.exports = {
     config: {
         chat: {
             name: 'infect',
-            description: 'Infect people with various things.',
+            description: 'Infect people: <user> was {transmit} with {region} {disease}',
             options: [
                 {
                     type: 6,
@@ -18,14 +18,18 @@ module.exports = {
         },
         level: 1
     },
-    execute(bot, action) {
-        const user = global.tools.pickuser(action, 'user');
-        let data = `<@${user.id}> was `;
-        data += global.dict.query('transmit', action.user, user);
-        data += ' with ';
-        data += global.dict.query('region', action.user, user);
-        data += ' ';
-        data += global.dict.query('disease', action.user, user);
-        action.reply({ content: data });
+    async execute(bot, action) {
+        const user = await global.tools.pickuser(action, 'user');
+        const embed = {
+            color: 0x8888ff,
+            title: '🤮 Infect',
+            description: `<@${user.id}> was `
+        };
+        embed.description += global.dict.query('transmit', action.user, user);
+        embed.description += ' with ';
+        embed.description += global.dict.query('region', action.user, user);
+        embed.description += ' ';
+        embed.description += global.dict.query('disease', action.user, user);
+        action.reply({ embeds: [ embed ] });
     },
 };

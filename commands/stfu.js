@@ -2,7 +2,7 @@ module.exports = {
     config: {
         chat: {
             name: 'stfu',
-            description: 'Tells someone to STFU.',
+            description: 'Tells someone to STFU: <author> {insert} {object} into {user}\'s {orifice} and tells them to {stfu}',
             options: [
                 {
                     type: 6,
@@ -18,16 +18,20 @@ module.exports = {
         },
         level: 1
     },
-    execute(bot, action) {
-        const user = global.tools.pickuser(action, 'user');
-        let data = `<@${action.user.id}> `;
-        data += global.dict.query('insert', action.user, user);
-        data += ' ';
-        data += global.dict.query('object', action.user, user);
-        data += ` into <@${user.id}>'s `;
-        data += global.dict.query('orifice', action.user, user);
-        data += ' and tells them to ';
-        data += global.dict.query('stfu', action.user, user);
-        action.reply({ content: data });
+    async execute(bot, action) {
+        const user = await global.tools.pickuser(action, 'user');
+        const embed = {
+            color: 0x8888ff,
+            title: '👿 STFU',
+            description: `<@${action.user.id}> `
+        };
+        embed.description += global.dict.query('insert', action.user, user);
+        embed.description += ' ';
+        embed.description += global.dict.query('object', action.user, user);
+        embed.description += ` into <@${user.id}>'s `;
+        embed.description += global.dict.query('orifice', action.user, user);
+        embed.description += ' and tells them to ';
+        embed.description += global.dict.query('stfu', action.user, user);
+        action.reply({ embeds: [ embed ] });
     },
 };

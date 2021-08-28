@@ -18,7 +18,7 @@ module.exports = {
         },
         level: 5
     },
-    execute(bot, action) {
+    async execute(bot, action) {
         const func = action.options.getSubcommand();
         switch (func) {
             case 'restart': {

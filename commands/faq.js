@@ -32,29 +32,25 @@ module.exports = {
             throw msg;
         }
 
-        let msg = '';
-        if (target) msg += 'FAQ for \'' + results[0] + '\'';
-        else msg += 'Randomly chosen FAQ, \'' + results[0] + '\'';
-        if (str) msg += `, with instances of '${str}'`;
-        msg += ':\n';
+        const embed = {
+            color: 0x8888ff,
+            title: `⁉ FAQ: ${results[0]}`,
+            description: str ? `Searching for: ${str}` : 'Showing all entries',
+            fields: [],
+            footer: { text: '' }
+        };
 
-        let carry = 0, count = 0, more = 0, output = '';
-        for (const result of results[1]) {
-            const idx = count + 1, iter = `${idx}. ${result}\n`, total = iter.length + output.length;
-            if (total < 1000 && carry < 20) {
-                output += iter;
-                carry++;
+        let count = 0, more = 0;
+        for (const result in results[1]) {
+            if (embed.fields.length >= 24) { more++; }
+            else {
+                const index = parseInt(result, 10) + 1;
+                embed.fields.push({ name: `[${index}]`, value: results[1][result], inline: true });
             }
-            else { more++; }
             count++;
         }
-        if (output.length > 0) {
-            msg += '```\n';
-            msg += output;
-            msg += '```';
-        }
-        if (more) msg += `Results truncated, showing ${carry} of ${count} match(es).`;
-
-        action.reply({ content: msg });
+        if (more) embed.footer.text += `Results truncated, showing ${embed.fields.length} of ${count} match(es).`;
+        else embed.footer.text += `There are a total of ${count} match(es).`;
+        action.reply({ embeds: [embed] });
     },
 };

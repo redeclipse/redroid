@@ -25,19 +25,6 @@ module.exports = {
     save(word) {
         global.log.out(`Saving dictionary: ./db/dict/${word}.json`);
         try {
-            fs.accessSync(`./db/dict/${word}.json`, fs.constants.R_OK);
-            try {
-                fs.renameSync(`./db/dict/${word}.json`, `./db/dict/${word}.bak`);
-                global.log.out(`Saving dictionary backup: ./db/dict/${word}.bak`);
-            }
-            catch (e) {
-                global.log.out(`Saving dictionary backup failed: ./db/dict/${word}.bak (${e})`);
-            }
-        }
-        catch (e) {
-            global.log.out(`Saving dictionary backup not found: ./db/dict/${word}.json (${e})`);
-        }
-        try {
             fs.writeFileSync(`./db/dict/${word}.json`, JSON.stringify(this.words[word], null, 2));
             return true;
         }
@@ -89,6 +76,7 @@ module.exports = {
         const data = this.words[word].filter(value => value === str);
         if (data && data.length > 0) throw `Dictionary '${word}'' already has '${str}'.'`;
         this.words[word].push(str);
+        this.save(word);
         return this.words[word][this.words[word].length - 1];
     },
     remove(word, str) {
@@ -108,6 +96,7 @@ module.exports = {
         }
         else { narr = this.words[word].filter(value => value !== str); }
         this.words[word] = narr;
+        this.save(word);
         return data;
     },
 };

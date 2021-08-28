@@ -27,7 +27,7 @@ module.exports = {
                 },
                 {
                     name: 'add',
-                    description: 'Add entries in dictionaries.',
+                    description: 'Add entries to dictionaries.',
                     type: 1,
                     options: [
                         {
@@ -48,7 +48,7 @@ module.exports = {
                 },
                 {
                     name: 'remove',
-                    description: 'Search for entries in dictionaries.',
+                    description: 'Remove entries from dictionaries.',
                     type: 1,
                     options: [
                         {
@@ -82,26 +82,26 @@ module.exports = {
             case 'search': {
                 const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str);
                 if (list.length) {
-                    let msg = `Dictionary search results in '${word}' for '${str}':\n`,
-                        carry = 0, count = 0, more = 0, output = '';
-                    for (const result of list) {
-                        const iter = `${result}\n`, total = iter.length + output.length;
-                        if (total < 1000 && carry < 20) {
-                            output += iter;
-                            carry++;
+                    const embed = {
+                        color: 0x8888ff,
+                        title: `📕 Dictionary: ${word}`,
+                        description: `Searching for: **${str}**`,
+                        fields: [],
+                        footer: { text: '' }
+                    };
+                    let count = 0, more = 0;
+                    for (const result in list) {
+                        if (embed.fields.length >= 24) { more++; }
+                        else {
+                            const index = parseInt(result, 10) + 1;
+                            embed.fields.push({ name: `[${index}]`, value: list[result], inline: true });
                         }
-                        else { more++; }
                         count++;
                     }
-                    if (output.length > 0) {
-                        msg += '```\n';
-                        msg += output;
-                        msg += '```';
-                    }
-                    if (more) msg += `Results truncated, showing ${carry} of ${count} match(es).`;
-                    else msg += `There are a total of ${count} match(es).`;
+                    if (more) embed.footer.text += `Results truncated, showing ${embed.fields.length} of ${count} match(es).`;
+                    else embed.footer.text += `There are a total of ${count} match(es).`;
                     action.reply({
-                        content: msg
+                        embeds: [embed]
                     });
                 }
                 else { throw `There are no dictionary matches in '${word}' for '${str}'.`; }

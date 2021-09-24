@@ -165,13 +165,13 @@ module.exports = {
                 };
                 this.buttons[action.id] = {
                     action: 'remove',
-                    string: str,
                     user: action.user,
                     page: {
                         cur: 0,
                         num: result.page.num
                     },
                     word: word,
+                    string: str,
                     result: result,
                     list: list
                 };
@@ -191,7 +191,6 @@ module.exports = {
             case 'remove': {
                 const level = global.access.level(action.guild, action.user);
                 const reply = {
-                    content: '',
                     embeds: [{
                         color: 0xff88ff,
                         title: `📕 Dictionary: ${button.word}`,

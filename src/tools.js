@@ -1,5 +1,8 @@
 module.exports = {
     name: 'tools',
+    config: {
+        level_random: 2
+    },
     start() {
         return true;
     },
@@ -43,11 +46,11 @@ module.exports = {
         return await this.getmember(action, user);
     },
     async pickuser(action, value) {
-        if (global.access.level(action.guild, action.user) >= 2) return await this.randomuser(action, value);
+        if (global.access.level(action.guild, action.user) >= this.config.level_random) return await this.randomuser(action, value);
         return this.defaultuser(action, value);
     },
     async pickmember(action, value) {
-        if (global.access.level(action.guild, action.user) >= 2) return await this.randommemeber(action, value);
+        if (global.access.level(action.guild, action.user) >= this.config.level_random) return await this.randommemeber(action, value);
         return await this.defaultmember(action, value);
     },
 

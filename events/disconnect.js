@@ -1,8 +1,8 @@
 module.exports = {
     name: 'disconnect',
-    once: true,
+    once: false,
     execute(bot, event) {
-        this.online = false;
+        bot.online = false;
         if (event.code === 1000) {
             global.log.out('Disconnected from Discord cleanly.');
         }

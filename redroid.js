@@ -57,7 +57,9 @@ class Bot extends Client {
                 if (command.config.user) this.commands.set(command.config.user.name, command);
                 if (command.config.mesg) this.commands.set(command.config.mesg.name, command);
             }
-            else {global.log.error('ERROR: Command provides no config.');}
+            else {
+                global.log.error('ERROR: Command provides no config.');
+            }
         }
 
         // Load events and connect their emitters
@@ -129,8 +131,9 @@ class Bot extends Client {
     }
 
     log(type, str, ...args) {
-        if (this.online !== true || !this.config.logId) return;
-        const chan = this.channels.cache.get(this.config.logId);
+        if (this.online !== true || !this.config.channels.log) return;
+        const chan = this.channels.cache.get(this.config.channels.log);
+        if (!chan) return;
         let msg = `[${type}] ${str}`;
         if (args && args.length > 0) {
             msg += '\n```\n';

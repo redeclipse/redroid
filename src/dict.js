@@ -9,6 +9,7 @@ module.exports = {
             global.log.out(`Loading dictionary: ./db/dict/${word}.json`);
             try {
                 const data = fs.readFileSync(`./db/dict/${word}.json`, 'utf-8');
+                if (!data) throw `Error reading ${word} dictionary.`;
                 this.words[word] = JSON.parse(data);
                 global.log.out(`Dictionary '${word}' loaded ` + this.words[word].length + ' entries.');
             }

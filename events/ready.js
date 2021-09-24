@@ -1,8 +1,8 @@
 module.exports = {
     name: 'ready',
-    once: true,
+    once: false,
     execute(bot, client) {
-        client.online = true;
+        bot.online = true;
 
         (title => {
             process.title = title;

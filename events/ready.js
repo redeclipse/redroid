@@ -21,6 +21,7 @@ module.exports = {
         client.guilds.fetch().then(client.guilds.cache.forEach(guild => {
             guild.channels.fetch();
             guild.members.fetch();
+            guild.emojis.fetch();
         }));
     },
 };

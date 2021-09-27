@@ -119,7 +119,7 @@ module.exports = {
                 if (this.config.level_remove > level) throw `Access level '${this.config.level_remove}' is required.`;
                 const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str);
                 const embed = {
-                    color: 0xff88ff,
+                    color: 0x88ffff,
                     title: `📕 Dictionary: ${word}`,
                     description: 'This will remove:',
                     fields: [],
@@ -192,7 +192,7 @@ module.exports = {
                 const level = global.access.level(action.guild, action.user);
                 const reply = {
                     embeds: [{
-                        color: 0xff88ff,
+                        color: 0x88ffff,
                         title: `📕 Dictionary: ${button.word}`,
                         description: 'ATTENTION! This will remove:',
                         fields: [],

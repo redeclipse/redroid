@@ -17,5 +17,10 @@ module.exports = {
             type: 'WATCHING',
             name: 'everything you do..'
         });
+
+        client.guilds.fetch().then(client.guilds.cache.forEach(guild => {
+            guild.channels.fetch();
+            guild.members.fetch();
+        }));
     },
 };

@@ -5,15 +5,18 @@ const wait = ms => new Promise(_ => setTimeout(_, ms));
 global.log = {
     bot: null,
     error(str, ...args) {
-        console.error(str, ...args);
+        const datestr = new Date().toISOString();
+        console.error('[' + datestr + '] ' + str, ...args);
         if (this.bot) this.bot.log('ERROR', str, ...args);
     },
     out(str, ...args) {
-        console.log(str, ...args);
+        const datestr = new Date().toISOString();
+        console.log('[' + datestr + '] ' + str, ...args);
         if (this.bot) this.bot.log('LOG', str, ...args);
     },
     warn(str, ...args) {
-        console.warn(str, ...args);
+        const datestr = new Date().toISOString();
+        console.warn('[' + datestr + '] ' + str, ...args);
         if (this.bot) this.bot.log('WARN', str, ...args);
     }
 };

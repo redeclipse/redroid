@@ -10,11 +10,17 @@ module.exports = {
         file: './db/bridge.json',
         master: 'https://play.redeclipse.net:28888',
         via: 'discord',
-        webhook: 'Redroid Bridge',
+        webhook: 'Red Eclipse Bridge',
         retry: 30000, // ms before reopening a closed socket
         offlinenote: 600000, // ms between notes that a thread's server is offline
         authwait: 300000, // ms before signing in to a server again after it refused, as repeated failures get our address banned
-        speakers: 500 // posts remembered for turning a reply into @name
+        speakers: 500, // posts remembered for turning a reply into @name
+        discordgap: 600, // ms between posts to Discord, under a webhook's 5 every 2 seconds
+        backlog: 100, // posts waiting for Discord before the oldest are dropped
+        postsize: 2000, // characters in a Discord post
+        gamegap: 300, // ms between messages to one game server
+        usergap: 2000, // ms between one Discord user's messages to one game server, the game's 5 every 10 seconds
+        userbacklog: 5 // one Discord user's messages waiting for one game server before more are refused
     },
     bot: null,
     forum: null,
@@ -23,9 +29,12 @@ module.exports = {
     timers: new Set(),
     stopped: false,
     data: { threads: {} },
-    servers: new Map(), // host:port -> { info, feed, token, thread, chain, retry, authfailed }
+    servers: new Map(), // host:port -> { info, feed, token, thread, retry, authfailed, outbox, users, pumping }
     noted: new Map(), // thread id -> when it was last told its server is offline
     speakers: new Map(), // Discord message id -> the player's name it was posted for
+    outbox: [], // posts waiting for Discord: { server, kind, create, username, name, content, message }
+    pumping: false,
+    skipped: new Map(), // host:port -> posts dropped to keep up, told in its thread next
 
     start(bot) {
         const auth = bot.config.auth || {};
@@ -126,7 +135,7 @@ module.exports = {
         const key = this.key(info);
         let server = this.servers.get(key);
         if (!server) {
-            server = { key, info, feed: null, token: null, thread: null, chain: Promise.resolve(), retry: false, authfailed: 0 };
+            server = { key, info, feed: null, token: null, thread: null, retry: false, authfailed: 0, outbox: [], users: new Map(), pumping: false };
             this.servers.set(key, server);
         }
         const oldname = this.threadname(server.info);
@@ -136,7 +145,7 @@ module.exports = {
             return;
         }
         if (!server.feed && !server.retry) this.openfeed(server); // a failing feed waits for its retry, as updates come often
-        if (this.threadname(info) !== oldname) this.queue(server, () => this.rename(server));
+        if (this.threadname(info) !== oldname) this.post({ server, kind: 'rename' });
     },
     remove(server) {
         this.closefeed(server);
@@ -158,7 +167,7 @@ module.exports = {
             catch {
                 return;
             }
-            this.queue(server, () => this.feedevent(server, msg));
+            this.feedevent(server, msg);
         });
         ws.addEventListener('close', () => {
             if (server.feed !== ws) return;
@@ -178,15 +187,91 @@ module.exports = {
         server.feed = null;
         ws.close();
     },
-    // Posts for one server go out in the order its events came
-    queue(server, fun) {
-        // a thread a moderator deleted is made again, and the post tried once more there
-        const retry = err => {
-            if (!err || err.code !== RESTJSONErrorCodes.UnknownChannel) throw err;
-            this.forget(server);
-            return fun();
-        };
-        server.chain = server.chain.then(fun).catch(retry).catch(err => global.log.error(`Bridge: ${server.key}: ${err.stack || err}`));
+    wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    },
+
+    // Everything for Discord waits its turn here, one post every discordgap, in the order it came for each thread
+    post(item) {
+        this.outbox.push(item);
+        if (this.outbox.length > this.config.backlog) {
+            // the oldest go first, and their thread is told how many
+            const i = this.outbox.findIndex(o => o.kind === 'chat' || o.kind === 'line');
+            if (i >= 0) {
+                const [gone] = this.outbox.splice(i, 1);
+                this.skipped.set(gone.server.key, (this.skipped.get(gone.server.key) || 0) + 1);
+            }
+        }
+        this.pump().catch(err => global.log.error(`Bridge: ${err.stack || err}`));
+    },
+    async pump() {
+        if (this.pumping) return;
+        this.pumping = true;
+        while (this.outbox.length && !this.stopped) {
+            const item = this.take();
+            try {
+                await this.deliver(item);
+            }
+            catch (err) {
+                // a thread a moderator deleted is made again, and the post tried once more there
+                if (err && err.code === RESTJSONErrorCodes.UnknownChannel && item.server) {
+                    this.forget(item.server);
+                    await this.deliver(item).catch(e => global.log.error(`Bridge: ${item.server.key}: ${e.stack || e}`));
+                }
+                else {
+                    global.log.error(`Bridge: ${item.server ? item.server.key : 'reply'}: ${err.stack || err}`);
+                }
+            }
+            await this.wait(this.config.discordgap);
+        }
+        this.pumping = false;
+    },
+    // The next post, with the ones after it in the same thread from the same sender joined on, so a burst takes fewer posts
+    take() {
+        const head = this.outbox.shift();
+        if (head.kind !== 'chat' && head.kind !== 'line') return head;
+        for (let i = 0; i < this.outbox.length;) {
+            const o = this.outbox[i];
+            if (o.server !== head.server) {
+                i++; // other threads keep their places
+                continue;
+            }
+            // anything else in this thread ends the run, so it keeps its order
+            if (o.kind !== head.kind || o.username !== head.username || o.create !== head.create) break;
+            if (head.content.length + 1 + o.content.length > this.config.postsize) break;
+            head.content += '\n' + o.content;
+            this.outbox.splice(i, 1);
+        }
+        return head;
+    },
+    async deliver(item) {
+        if (item.kind === 'reply') {
+            await item.message.reply({ content: item.content, allowedMentions: { parse: [] } });
+            return;
+        }
+        if (item.kind === 'rename') {
+            await this.rename(item.server);
+            return;
+        }
+        // a map change alone doesn't start a thread
+        if (!item.create && !await this.thread(item.server, false)) return;
+        const thread = await this.open(item.server);
+        const skipped = this.skipped.get(item.server.key);
+        if (skipped) {
+            this.skipped.delete(item.server.key);
+            await thread.send({ content: `*${skipped} ${skipped === 1 ? 'post was' : 'posts were'} skipped to keep up.*`, allowedMentions: { parse: [] } });
+        }
+        if (item.kind === 'chat') {
+            const sent = await this.hook.send({ threadId: thread.id, username: item.username, content: item.content, allowedMentions: { parse: [] } });
+            this.speakers.set(sent.id, item.name);
+            if (this.speakers.size > this.config.speakers) this.speakers.delete(this.speakers.keys().next().value);
+        }
+        else {
+            await thread.send({ content: item.content, allowedMentions: { parse: [] } });
+        }
+    },
+    reply(message, content) {
+        this.post({ kind: 'reply', message, content });
     },
     forget(server) {
         server.thread = null;
@@ -239,7 +324,7 @@ module.exports = {
         return thread;
     },
 
-    async feedevent(server, msg) {
+    feedevent(server, msg) {
         if (!this.forum || !msg || !msg.event) return;
         const client = msg.client || {};
         const name = escapeMarkdown(this.plain(client.name) || 'someone');
@@ -250,31 +335,20 @@ module.exports = {
                 if (client.web && client.handle === this.bot.config.auth.handle) return; // our own, coming back
                 const text = this.plain(msg.text);
                 if (!text) return;
-                const thread = await this.open(server);
-                const sent = await this.hook.send({
-                    threadId: thread.id,
-                    username: this.username(client),
-                    content: msg.event === 'action' ? `*${escapeMarkdown(text)}*` : escapeMarkdown(text),
-                    allowedMentions: { parse: [] }
-                });
-                this.speakers.set(sent.id, this.plain(client.name));
-                if (this.speakers.size > this.config.speakers) this.speakers.delete(this.speakers.keys().next().value);
+                const content = msg.event === 'action' ? `*${escapeMarkdown(text)}*` : escapeMarkdown(text);
+                this.post({ server, kind: 'chat', create: true, username: this.username(client), name: this.plain(client.name), content });
                 return;
             }
             case 'join':
             case 'leave': {
                 if (client.bot) return;
-                const thread = await this.open(server);
                 const reason = msg.reason ? ` (${escapeMarkdown(msg.reason)})` : '';
-                await thread.send({ content: `**${name}** ${msg.event === 'join' ? 'joined' : 'left'}${reason}`, allowedMentions: { parse: [] } });
+                this.post({ server, kind: 'line', create: true, content: `**${name}** ${msg.event === 'join' ? 'joined' : 'left'}${reason}` });
                 return;
             }
             case 'map': {
                 if (!this.players(server)) return; // empty servers rotate maps with nobody to tell
-                const thread = await this.thread(server, false); // a map change alone doesn't start a thread
-                if (!thread) return;
-                await this.open(server);
-                await thread.send({ content: `Now playing **${escapeMarkdown(this.plain(msg.mode))}** on **${escapeMarkdown(this.plain(msg.map))}**`, allowedMentions: { parse: [] } });
+                this.post({ server, kind: 'line', create: false, content: `Now playing **${escapeMarkdown(this.plain(msg.mode))}** on **${escapeMarkdown(this.plain(msg.map))}**` });
                 return;
             }
             default:
@@ -302,7 +376,7 @@ module.exports = {
             if (Date.now() - (this.noted.get(message.channel.id) || 0) < this.config.offlinenote) return;
             this.noted.set(message.channel.id, Date.now());
             const why = server ? 'no longer takes chat from here' : 'is offline';
-            await message.reply({ content: `That server ${why}, so this didn't reach it.`, allowedMentions: { parse: [] } });
+            this.reply(message, `That server ${why}, so this didn't reach it.`);
             return;
         }
         let text = message.cleanContent.replace(/<a?(:\w+:)\d+>/g, '$1').trim(), action = false; // custom emoji by name
@@ -317,8 +391,42 @@ module.exports = {
         const to = await this.replyto(message);
         if (to) text = `@${to} ${text}`;
         const from = (message.member && message.member.displayName) || message.author.globalName || message.author.username;
-        const err = await this.say(server, { text, from, via: this.config.via, action });
-        if (err) await message.reply({ content: `That didn't reach the server: ${err}`, allowedMentions: { parse: [] } });
+        this.send(server, { user: message.author.id, message, body: { text, from, via: this.config.via, action } });
+    },
+
+    // Messages for a game server wait their turn: one every gamegap, and each Discord user's no more often than usergap,
+    // so one busy user doesn't hold up the others or trip the game's limits
+    send(server, item) {
+        if (server.outbox.filter(o => o.user === item.user).length >= this.config.userbacklog) {
+            this.reply(item.message, 'You\'re writing faster than the game takes chat, so that one wasn\'t sent.');
+            return;
+        }
+        server.outbox.push(item);
+        this.pumpgame(server).catch(err => global.log.error(`Bridge: ${server.key}: ${err.stack || err}`));
+    },
+    async pumpgame(server) {
+        if (server.pumping) return;
+        server.pumping = true;
+        while (server.outbox.length && !this.stopped) {
+            if (this.servers.get(server.key) !== server || !this.eligible(server.info)) {
+                for (const item of server.outbox.splice(0)) this.reply(item.message, 'That server went away before this reached it.');
+                break;
+            }
+            const now = Date.now(), ready = o => now - (server.users.get(o.user) || 0) >= this.config.usergap;
+            const i = server.outbox.findIndex(ready);
+            if (i < 0) {
+                const soonest = Math.min(...server.outbox.map(o => this.config.usergap - (now - (server.users.get(o.user) || 0))));
+                await this.wait(Math.max(soonest, 50));
+                continue;
+            }
+            const [item] = server.outbox.splice(i, 1);
+            for (const [user, when] of server.users) if (Date.now() - when > this.config.usergap) server.users.delete(user);
+            server.users.set(item.user, Date.now());
+            const err = await this.say(server, item.body);
+            if (err) this.reply(item.message, `That didn't reach the server: ${err}`);
+            await this.wait(this.config.gamegap);
+        }
+        server.pumping = false;
     },
     async replyto(message) {
         const ref = message.reference && message.reference.messageId;
@@ -341,7 +449,7 @@ module.exports = {
                     return err;
                 }
             }
-            const res = await this.post(server, '/say', body, server.token);
+            const res = await this.request(server, '/say', body, server.token);
             if (res.status === 401) {
                 server.token = null;
                 continue;
@@ -354,17 +462,17 @@ module.exports = {
     },
     async signin(server) {
         const auth = this.bot.config.auth;
-        const chal = await this.post(server, '/auth', { name: auth.handle });
+        const chal = await this.request(server, '/auth', { name: auth.handle });
         if (chal.status !== 200 || !chal.json || !chal.json.challenge) return `couldn't sign in (${chal.error || chal.status})`;
         const answer = this.answer(auth.privkey, chal.json.challenge);
         if (!answer) return 'couldn\'t answer the server\'s challenge';
-        const done = await this.post(server, '/auth', { id: chal.json.id, answer });
+        const done = await this.request(server, '/auth', { id: chal.json.id, answer });
         if (done.status !== 200 || !done.json || !done.json.token) return `couldn't sign in (${done.error || done.status})`;
         server.token = done.json.token;
         global.log.out(`Bridge: signed in to ${server.key} as ${done.json.name} (${done.json.privilege})`);
         return null;
     },
-    async post(server, path, body, token) {
+    async request(server, path, body, token) {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers.Authorization = `Bearer ${token}`;
         try {

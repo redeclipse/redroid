@@ -349,8 +349,16 @@ module.exports = {
         if (server.thread) return server.thread;
         const id = this.data.threads[server.key];
         if (id) {
-            const found = await this.forum.threads.fetch(id).catch(() => null);
-            if (found) return server.thread = found;
+            // only a thread Discord says is gone is made again; any other failure, such as a network error, is thrown,
+            // as making one then would leave the server with two threads
+            try {
+                const found = await this.forum.threads.fetch(id);
+                if (found) return server.thread = found;
+            }
+            catch (err) {
+                if (!err || err.code !== RESTJSONErrorCodes.UnknownChannel) throw err;
+                this.forget(server);
+            }
         }
         if (!create) return null;
         const made = await this.forum.threads.create({

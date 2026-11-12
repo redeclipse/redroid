@@ -37,12 +37,11 @@ module.exports = {
         return await action.guild.members.fetch(user.id);
     },
     async randomuser(action, value) {
-        let user = action.options.getUser(value);
-        if (!user) {
-            const members = await action.guild.members.fetch();
-            user = members.filter(m => m.user.id !== action.user.id).random().user;
-        }
-        return user;
+        const user = action.options.getUser(value);
+        if (user) return user;
+        // The member cache is filled on ready and kept current by the GuildMembers intent
+        const member = action.guild.members.cache.filter(m => m.user.id !== action.user.id).random();
+        return member ? member.user : action.user;
     },
     async randommember(action, value) {
         const user = await this.randomuser(action, value);

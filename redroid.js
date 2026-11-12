@@ -4,29 +4,31 @@ const { Client, Collection, GatewayIntentBits, RESTEvents } = require('discord.j
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const timestamp = () => '[' + new Date().toISOString() + ']';
+// An Error logged as itself keeps its stack, which joining it to a string would lose
+const text = str => (str instanceof Error ? str.stack || String(str) : str);
 
 global.log = {
     bot: null,
     error(str, ...args) {
-        console.error(timestamp() + ' ' + str, ...args);
-        if (this.bot) this.bot.log('ERROR', str, ...args);
+        console.error(timestamp() + ' ' + text(str), ...args);
+        if (this.bot) this.bot.log('ERROR', text(str), ...args);
     },
     // Console only
     out(str, ...args) {
-        console.log(timestamp() + ' ' + str, ...args);
+        console.log(timestamp() + ' ' + text(str), ...args);
     },
     // Console and the log channel, for events worth reviewing later
     audit(str, ...args) {
-        console.log(timestamp() + ' ' + str, ...args);
-        if (this.bot) this.bot.log('LOG', str, ...args);
+        console.log(timestamp() + ' ' + text(str), ...args);
+        if (this.bot) this.bot.log('LOG', text(str), ...args);
     },
     warn(str, ...args) {
-        console.warn(timestamp() + ' ' + str, ...args);
-        if (this.bot) this.bot.log('WARN', str, ...args);
+        console.warn(timestamp() + ' ' + text(str), ...args);
+        if (this.bot) this.bot.log('WARN', text(str), ...args);
     },
     // Console only, for discord.js debug output
     debug(str, ...args) {
-        console.log(timestamp() + ' ' + str, ...args);
+        console.log(timestamp() + ' ' + text(str), ...args);
     }
 };
 
@@ -152,7 +154,7 @@ class Bot extends Client {
     log(type, str, ...args) {
         if (this.online !== true || !global.post) return;
         let msg = `${str}`;
-        if (args && args.length > 0) msg += '\n```\n' + JSON.stringify(args, null, 2) + '```';
+        if (args && args.length > 0) msg += '\n```\n' + JSON.stringify(args.map(text), null, 2) + '```';
         global.post.log(type, msg);
     }
 }

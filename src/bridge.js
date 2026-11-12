@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
-const { ChannelType, Events, RESTJSONErrorCodes, RateLimitError, escapeMarkdown } = require('discord.js');
+const { ChannelType, Events, MessageFlags, RESTJSONErrorCodes, RateLimitError, escapeMarkdown } = require('discord.js');
 
 // Bridges each game server's chat with its own thread in a forum channel, through the master's relay:
 // the server's Event feed comes out as posts, and replies in the thread go back in with POST /say
@@ -304,13 +304,14 @@ module.exports = {
             this.skipped.delete(item.server.key);
             await thread.send({ content: `*${skipped} ${skipped === 1 ? 'post was' : 'posts were'} skipped to keep up.*`, allowedMentions: { parse: [] } });
         }
+        // no link previews, so a link from the game is only text
         if (item.kind === 'chat') {
-            const sent = await this.hook.send({ threadId: thread.id, username: item.username, content: item.content, allowedMentions: { parse: [] } });
+            const sent = await this.hook.send({ threadId: thread.id, username: item.username, content: item.content, allowedMentions: { parse: [] }, flags: MessageFlags.SuppressEmbeds });
             this.speakers.set(sent.id, item.name);
             if (this.speakers.size > this.config.speakers) this.speakers.delete(this.speakers.keys().next().value);
         }
         else {
-            await thread.send({ content: item.content, allowedMentions: { parse: [] } });
+            await thread.send({ content: item.content, allowedMentions: { parse: [] }, flags: MessageFlags.SuppressEmbeds });
         }
     },
     reply(message, content) {
@@ -334,6 +335,11 @@ module.exports = {
     plain(str) {
         return String(str || '').replace(/\f(\[[^\]]*\]|\([^)]*\)|\{[^}]*\}|.)/g, '').replace(/\s+/g, ' ').trim();
     },
+    // Game text as Discord shows it, with nothing taken as markdown: escapeMarkdown leaves headings, lists and masked
+    // links alone unless asked, and doesn't know subtext (-#) or quotes (>) at all; each piece starts a line of its post
+    escape(str) {
+        return escapeMarkdown(str, { heading: true, bulletedList: true, numberedList: true, maskedLink: true }).replace(/^(-#|>)/, '\\$1');
+    },
     threadname(info) {
         const desc = info ? this.plain(info.description) : '';
         return (desc || (info ? this.key(info) : '')).slice(0, 100);
@@ -348,7 +354,7 @@ module.exports = {
         if (!create) return null;
         const made = await this.forum.threads.create({
             name: this.threadname(server.info),
-            message: { content: `Chat on **${escapeMarkdown(this.threadname(server.info))}** (${server.key}). Write here to talk to its players.` }
+            message: { content: `Chat on **${this.escape(this.threadname(server.info))}** (${server.key}). Write here to talk to its players.` }
         });
         this.data.threads[server.key] = made.id;
         this.save();
@@ -397,7 +403,7 @@ module.exports = {
     feedevent(server, msg) {
         if (!this.forum || !msg || !msg.event) return;
         const client = msg.client || {};
-        const name = escapeMarkdown(this.plain(client.name) || 'someone');
+        const name = this.escape(this.plain(client.name) || 'someone');
         switch (msg.event) {
             case 'chat':
             case 'action': {
@@ -405,7 +411,7 @@ module.exports = {
                 if (client.web && client.handle === this.bot.config.auth.handle) return; // our own, coming back
                 const text = this.plain(msg.text);
                 if (!text) return;
-                const content = msg.event === 'action' ? `*${escapeMarkdown(text)}*` : escapeMarkdown(text);
+                const content = msg.event === 'action' ? `*${this.escape(text)}*` : this.escape(text);
                 this.post({ server, kind: 'chat', create: true, username: this.username(client), name: this.plain(client.name), content });
                 return;
             }
@@ -413,7 +419,7 @@ module.exports = {
             case 'leave': {
                 if (typeof msg.players === 'number') server.count = msg.players; // bots' too, as it counts the people
                 if (client.bot) return;
-                const reason = msg.reason ? ` (${escapeMarkdown(msg.reason)})` : '';
+                const reason = msg.reason ? ` (${this.escape(this.plain(msg.reason))})` : '';
                 // how many are on after it, from servers new enough to say
                 const count = typeof msg.players === 'number' ? ` (${msg.players} ${msg.players === 1 ? 'player' : 'players'})` : '';
                 this.post({ server, kind: 'line', create: true, content: `**${name}** ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}` });
@@ -421,7 +427,7 @@ module.exports = {
             }
             case 'map': {
                 if (!this.players(server)) return; // empty servers rotate maps with nobody to tell
-                this.post({ server, kind: 'line', create: false, content: `Now playing **${escapeMarkdown(this.plain(msg.mode))}** on **${escapeMarkdown(this.plain(msg.map))}**` });
+                this.post({ server, kind: 'line', create: false, content: `Now playing **${this.escape(this.plain(msg.mode))}** on **${this.escape(this.plain(msg.map))}**` });
                 return;
             }
             default:

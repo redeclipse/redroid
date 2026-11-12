@@ -29,5 +29,8 @@
     "@stylistic/eslint-plugin": "^5.10.0",
     "eslint": "^10.14.0",
     "globals": "^17.14.0"
+  },
+  "overrides": {
+    "minimatch": "^11.0.1"
   }
 }

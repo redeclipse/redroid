@@ -2,7 +2,10 @@ db
 node_modules
 config.json
 .vscode
+
+# Logs, including pm2-logrotate archives (redroid__<date>.log[.gz])
 *.log
+*.log.gz
 
 # Agent files
 CLAUDE.md

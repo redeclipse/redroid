@@ -1,4 +1,4 @@
-const { ActivityType, Events } = require('discord.js');
+const { ActivityType, Events, PermissionFlagsBits } = require('discord.js');
 
 module.exports = {
     name: Events.ClientReady,
@@ -22,6 +22,22 @@ module.exports = {
         for (const partial of guilds.values()) {
             const guild = await partial.fetch();
             await Promise.all([guild.channels.fetch(), guild.members.fetch(), guild.emojis.fetch()]);
+        }
+
+        this.checkchannels(bot, client);
+    },
+    // Sends to a missing channel are silently skipped, so report bad config.channels entries once at startup
+    checkchannels(bot, client) {
+        for (const [key, id] of Object.entries(bot.config.channels || {})) {
+            const chan = client.channels.cache.get(id);
+            if (!chan) {
+                global.log.warn(`Channel '${key}' (${id}) from config.json was not found.`);
+                continue;
+            }
+            const perms = chan.permissionsFor ? chan.permissionsFor(client.user) : null;
+            if (!perms || !perms.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages])) {
+                global.log.warn(`Channel '${key}' (#${chan.name}) from config.json is not writable by the bot.`);
+            }
         }
     },
 };

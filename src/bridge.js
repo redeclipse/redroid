@@ -327,9 +327,10 @@ module.exports = {
         return status && Array.isArray(status.players) ? status.players.length : 0;
     },
 
-    // Game markup, such as colours and icons, has no meaning on Discord
+    // Game markup, such as colours and icons, has no meaning on Discord,
+    // and line breaks become spaces, as older builds let web chat start a line that would look like a post of its own
     plain(str) {
-        return String(str || '').replace(/\f(\[[^\]]*\]|\([^)]*\)|\{[^}]*\}|.)/g, '').trim();
+        return String(str || '').replace(/\f(\[[^\]]*\]|\([^)]*\)|\{[^}]*\}|.)/g, '').replace(/\s+/g, ' ').trim();
     },
     threadname(info) {
         const desc = info ? this.plain(info.description) : '';

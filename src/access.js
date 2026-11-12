@@ -1,26 +1,23 @@
 module.exports = {
     name: 'access',
-    start() {
+    // config.access: { users: { <user id>: level }, roles: { <role name>: level } }, applied to config.guildId only
+    config: { users: {}, roles: {} },
+    guildid: null,
+    start(bot) {
+        this.guildid = bot.config.guildId;
+        this.config = Object.assign({ users: {}, roles: {} }, bot.config.access);
         return true;
     },
+    // Per-user levels override roles (-1 blocks a user); otherwise the highest level of the member's roles
     level(guild, user) {
-        if (!guild) return 0;
+        if (!guild || guild.id !== this.guildid) return 0;
         const member = guild.members.resolve(user);
         if (!member) return 0;
-        switch (guild.id) {
-            case '224638962050793474': {
-                if (member.id === '879328623297957949') return -1;
-                if (member.id === '189189124194959361' || member.id === '854993935831138323') return 10;
-                if (member.roles.cache.find(r => r.name === 'Developers')) return 6;
-                if (member.roles.cache.find(r => r.name === 'Administrators')) return 5;
-                if (member.roles.cache.find(r => r.name === 'Moderators')) return 4;
-                if (member.roles.cache.find(r => r.name === 'Supporters')) return 3;
-                if (member.roles.cache.find(r => r.name === 'Speshul')) return 2;
-                if (member.roles.cache.find(r => r.name === 'Team Alpha') || member.roles.cache.find(r => r.name === 'Team Omega')) return 1;
-                break;
-            }
-            default: break;
+        if (Object.hasOwn(this.config.users, member.id)) return this.config.users[member.id];
+        let level = 0;
+        for (const role of member.roles.cache.values()) {
+            if (Object.hasOwn(this.config.roles, role.name)) level = Math.max(level, this.config.roles[role.name]);
         }
-        return 0;
+        return level;
     }
 };

@@ -5,9 +5,8 @@ module.exports = {
     quotes: {},
     start() {
         global.log.out('Loading quotes: ./db/quote.json');
-        const data = fs.readFileSync('./db/quote.json', 'utf-8');
         try {
-            this.quotes = JSON.parse(data);
+            this.quotes = JSON.parse(fs.readFileSync('./db/quote.json', 'utf-8'));
             global.log.out('Quotes loaded ' + Object.keys(this.quotes).length + ' entries.');
         }
         catch (e) {
@@ -85,8 +84,9 @@ module.exports = {
         }
         else {
             const keys = Object.keys(this.quotes);
-            const num = global.tools.rand(0, keys.length);
-            result = { name: keys[num], value: this.lookup(keys[num]) };
+            const num = global.tools.rand(0, keys.length), value = keys.length ? this.lookup(keys[num]) : undefined;
+            if (value === undefined) return null; // none loaded, or a name with no quotes left
+            result = { name: keys[num], value };
         }
         return result;
     },

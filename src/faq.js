@@ -5,9 +5,8 @@ module.exports = {
     faqs: {},
     start() {
         global.log.out('Loading FAQs: ./db/faq.json');
-        const data = fs.readFileSync('./db/faq.json', 'utf-8');
         try {
-            this.faqs = JSON.parse(data);
+            this.faqs = JSON.parse(fs.readFileSync('./db/faq.json', 'utf-8'));
             global.log.out('FAQs loaded ' + Object.keys(this.faqs).length + ' entries.');
         }
         catch (e) {
@@ -82,6 +81,7 @@ module.exports = {
         }
         else {
             const keys = Object.keys(this.faqs);
+            if (!keys.length) return null; // none loaded
             const num = global.tools.rand(0, keys.length);
             result = { name: keys[num], value: this.lookup(keys[num]) };
         }

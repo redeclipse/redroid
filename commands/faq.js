@@ -24,7 +24,7 @@ module.exports = {
     },
     async execute(bot, action) {
         const target = action.options.getString('target'), str = action.options.getString('search'), data = global.faq.query(target, str, global.access.level(action.guild, action.user));
-        if (!data || !data.value.length) {
+        if (!data || !data.value || !data.value.length) {
             let msg = 'There are no FAQs';
             if (target) msg += ` for '${target}'`;
             if (str) msg += ` matching '${str}'`;

@@ -43,7 +43,11 @@ class Bot extends Client {
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent
             ],
-            rest: { invalidRequestWarningInterval: 1000 }
+            rest: {
+                invalidRequestWarningInterval: 1000,
+                // A channel edit that would wait for a rate limit throws instead, so a thread rename (2 every 10 minutes) can't hold up what's behind it
+                rejectOnRateLimit: data => data.method === 'PATCH' && data.route === '/channels/:id'
+            }
         });
 
         // Setup globals

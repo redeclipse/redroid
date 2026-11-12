@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
-const { ChannelType, Events, RESTJSONErrorCodes, escapeMarkdown } = require('discord.js');
+const { ChannelType, Events, RESTJSONErrorCodes, RateLimitError, escapeMarkdown } = require('discord.js');
 
 // Bridges each game server's chat with its own thread in a forum channel, through the master's relay:
 // the server's Event feed comes out as posts, and replies in the thread go back in with POST /say
@@ -20,7 +20,9 @@ module.exports = {
         postsize: 2000, // characters in a Discord post
         gamegap: 300, // ms between messages to one game server
         usergap: 2000, // ms between one Discord user's messages to one game server, the game's 5 every 10 seconds
-        userbacklog: 5 // one Discord user's messages waiting for one game server before more are refused
+        userbacklog: 5, // one Discord user's messages waiting for one game server before more are refused
+        renames: 2, // renames of one thread Discord allows every renamewindow
+        renamewindow: 600000
     },
     bot: null,
     forum: null,
@@ -35,6 +37,9 @@ module.exports = {
     outbox: [], // posts waiting for Discord: { server, kind, create, username, name, content, message }
     pumping: false,
     skipped: new Map(), // host:port -> posts dropped to keep up, told in its thread next
+    renamed: new Map(), // thread id -> when it was last renamed, for the ones still inside renamewindow
+    renaming: new Set(), // thread ids with a rename waiting for a slot
+    held: new Map(), // thread id -> when Discord will take an edit to it again, its posts waiting until then
 
     start(bot) {
         const auth = bot.config.auth || {};
@@ -145,7 +150,7 @@ module.exports = {
             return;
         }
         if (!server.feed && !server.retry) this.openfeed(server); // a failing feed waits for its retry, as updates come often
-        if (this.threadname(info) !== oldname) this.post({ server, kind: 'rename' });
+        if (this.threadname(info) !== oldname) this.rename(server).catch(err => global.log.error(`Bridge: ${key}: ${err.stack || err}`));
     },
     remove(server) {
         this.closefeed(server);
@@ -192,7 +197,8 @@ module.exports = {
         return new Promise(resolve => setTimeout(resolve, ms));
     },
 
-    // Everything for Discord waits its turn here, one post every discordgap, in the order it came for each thread
+    // Everything for Discord waits its turn here, one post every discordgap, in the order it came for each thread;
+    // a thread Discord won't edit yet keeps its posts waiting while the others go on
     post(item) {
         this.outbox.push(item);
         if (this.outbox.length > this.config.backlog) {
@@ -210,10 +216,19 @@ module.exports = {
         this.pumping = true;
         while (this.outbox.length && !this.stopped) {
             const item = this.take();
+            if (!item) {
+                await this.wait(Math.max(50, Math.min(...this.held.values()) - Date.now()));
+                continue;
+            }
             try {
                 await this.deliver(item);
             }
             catch (err) {
+                if (err instanceof RateLimitError && this.threadid(item)) {
+                    this.held.set(this.threadid(item), Date.now() + (err.sublimitTimeout || err.retryAfter));
+                    this.outbox.unshift(item);
+                    continue;
+                }
                 // a thread a moderator deleted is made again, and the post tried once more there
                 if (err && err.code === RESTJSONErrorCodes.UnknownChannel && item.server) {
                     this.forget(item.server);
@@ -229,9 +244,13 @@ module.exports = {
     },
     // The next post, with the ones after it in the same thread from the same sender joined on, so a burst takes fewer posts
     take() {
-        const head = this.outbox.shift();
+        const now = Date.now();
+        for (const [id, until] of this.held) if (until <= now) this.held.delete(id);
+        const at = this.outbox.findIndex(o => !this.held.has(this.threadid(o)));
+        if (at < 0) return null;
+        const [head] = this.outbox.splice(at, 1);
         if (head.kind !== 'chat' && head.kind !== 'line') return head;
-        for (let i = 0; i < this.outbox.length;) {
+        for (let i = at; i < this.outbox.length;) {
             const o = this.outbox[i];
             if (o.server !== head.server) {
                 i++; // other threads keep their places
@@ -245,13 +264,13 @@ module.exports = {
         }
         return head;
     },
+    // The thread a post goes to, if it has one yet
+    threadid(item) {
+        return item.message ? item.message.channelId : this.data.threads[item.server.key];
+    },
     async deliver(item) {
         if (item.kind === 'reply') {
             await item.message.reply({ content: item.content, allowedMentions: { parse: [] } });
-            return;
-        }
-        if (item.kind === 'rename') {
-            await this.rename(item.server);
             return;
         }
         // a map change alone doesn't start a thread
@@ -311,17 +330,42 @@ module.exports = {
         this.save();
         return server.thread = made;
     },
+    // Discord allows a thread two renames every 10 minutes, so one past that waits for a slot, then takes the name the server has by then
     async rename(server) {
         const thread = await this.thread(server, false);
         const name = this.threadname(server.info);
-        if (thread && !thread.archived && name && thread.name !== name) await thread.setName(name); // an archived one is renamed when opened
+        if (!thread || thread.archived || !name || thread.name === name) return; // an archived one is renamed when opened
+        if (this.renaming.has(thread.id)) return;
+        const now = Date.now();
+        const times = (this.renamed.get(thread.id) || []).filter(t => now - t < this.config.renamewindow);
+        this.renamed.set(thread.id, times);
+        if (times.length >= this.config.renames) {
+            this.renamelater(server, thread, times[0] + this.config.renamewindow - now);
+            return;
+        }
+        times.push(now);
+        try {
+            await thread.setName(name);
+        }
+        catch (err) {
+            if (err instanceof RateLimitError) this.renamelater(server, thread, err.sublimitTimeout || err.retryAfter);
+            else if (err && err.code === RESTJSONErrorCodes.UnknownChannel) this.forget(server);
+            else throw err;
+        }
+    },
+    renamelater(server, thread, ms) {
+        this.renaming.add(thread.id);
+        this.later(ms, () => {
+            this.renaming.delete(thread.id);
+            this.rename(server).catch(err => global.log.error(`Bridge: ${server.key}: ${err.stack || err}`));
+        });
     },
     // A quiet thread is archived by Discord, and opened again for the next post
     async open(server) {
         const thread = await this.thread(server, true);
         if (thread.archived) {
             await thread.setArchived(false);
-            await this.rename(server);
+            this.rename(server).catch(err => global.log.error(`Bridge: ${server.key}: ${err.stack || err}`));
         }
         return thread;
     },

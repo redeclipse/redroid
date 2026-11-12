@@ -12,3 +12,7 @@ CLAUDE.md
 CLAUDE.local.md
 AGENTS.md
 .claude/
+docs/agents/
+docs/adr/
+GLOSSARY.md
+GLOSSARY-MAP.md

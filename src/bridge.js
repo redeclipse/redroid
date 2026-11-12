@@ -133,7 +133,7 @@ module.exports = {
             this.closefeed(server);
             return;
         }
-        if (!server.feed) this.openfeed(server);
+        if (!server.feed && !server.retry) this.openfeed(server); // a failing feed waits for its retry, as updates come often
         if (this.threadname(info) !== oldname) this.queue(server, () => this.rename(server));
     },
     remove(server) {

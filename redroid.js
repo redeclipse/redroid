@@ -34,11 +34,14 @@ class Bot extends Client {
     // Instantiate the Discord client
     constructor() {
         super({
-            // Guilds: channels, roles, emojis; GuildMembers (privileged): member events and cache; GuildModeration: bans
+            // Guilds: channels, roles, emojis; GuildMembers (privileged): member events and cache; GuildModeration: bans;
+            // GuildMessages and MessageContent (privileged): what people write in the bridge's threads
             intents: [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMembers,
-                GatewayIntentBits.GuildModeration
+                GatewayIntentBits.GuildModeration,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent
             ],
         });
 

@@ -1,4 +1,5 @@
 const fs = require('fs');
+const path = require('path');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -137,12 +138,21 @@ class Bot extends Client {
 
 let bot = null;
 
+// Forget config.json, src, commands and events so a restart picks up changes to them
+const unload = () => {
+    const modules = path.join(__dirname, 'node_modules') + path.sep;
+    for (const key of Object.keys(require.cache)) {
+        if (key.startsWith(__dirname + path.sep) && !key.startsWith(modules) && key !== __filename) delete require.cache[key];
+    }
+};
+
 const start = () => {
     bot = new Bot();
     bot.once('shutdown', async (reboot) => {
         if (reboot) {
             global.log.out('Process has exited. Rebooting...');
             await wait(3000);
+            unload();
             start();
         }
         else {

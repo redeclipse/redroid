@@ -227,12 +227,15 @@ module.exports = {
     async rename(server) {
         const thread = await this.thread(server, false);
         const name = this.threadname(server.info);
-        if (thread && name && thread.name !== name) await thread.setName(name);
+        if (thread && !thread.archived && name && thread.name !== name) await thread.setName(name); // an archived one is renamed when opened
     },
     // A quiet thread is archived by Discord, and opened again for the next post
     async open(server) {
         const thread = await this.thread(server, true);
-        if (thread.archived) await thread.setArchived(false);
+        if (thread.archived) {
+            await thread.setArchived(false);
+            await this.rename(server);
+        }
         return thread;
     },
 
@@ -270,7 +273,7 @@ module.exports = {
                 if (!this.players(server)) return; // empty servers rotate maps with nobody to tell
                 const thread = await this.thread(server, false); // a map change alone doesn't start a thread
                 if (!thread) return;
-                if (thread.archived) await thread.setArchived(false);
+                await this.open(server);
                 await thread.send({ content: `Now playing **${escapeMarkdown(this.plain(msg.mode))}** on **${escapeMarkdown(this.plain(msg.map))}**`, allowedMentions: { parse: [] } });
                 return;
             }

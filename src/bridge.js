@@ -28,7 +28,11 @@ module.exports = {
         renamewindow: 600000,
         pause: 600000, // ms a thread that refused the bot is left alone, as each refusal counts towards Discord's ban
         heldcheck: 500, // ms between looks at the queue while every post in it waits for a held thread, so new ones for other threads go on
-        timeout: 10000 // ms before a request to a game server is given up
+        timeout: 10000, // ms before a request to a game server is given up
+        // ms a socket may go without a message before it is opened again: the server's pings can't be seen from here, so a
+        // connection that died without closing would otherwise stay open and silent for good
+        idle: 600000,
+        idlecheck: 60000
     },
     bot: null,
     forum: null,
@@ -66,10 +70,12 @@ module.exports = {
         }
         bot.once(Events.ClientReady, () => this.ready().catch(err => global.log.error(`Bridge: ${err.stack || err}`)));
         bot.on(Events.MessageCreate, message => this.message(message).catch(err => global.log.error(`Bridge: ${err.stack || err}`)));
+        this.watchdog = setInterval(() => this.reopenidle(), this.config.idlecheck);
         return true;
     },
     shutdown() {
         this.stopped = true;
+        clearInterval(this.watchdog);
         for (const timer of this.timers) clearTimeout(timer);
         this.timers.clear();
         if (this.live) this.live.close();
@@ -104,13 +110,32 @@ module.exports = {
             await this.forum.createWebhook({ name: this.config.webhook, reason: 'Posts game chat under each player\'s name' });
         return this.hook;
     },
+    // A socket that has heard nothing for config.idle is opened again; the master's list gives a fresh snapshot when it does
+    reopenidle() {
+        if (this.stopped) return;
+        const now = Date.now();
+        if (this.live && now - this.live.heard > this.config.idle) {
+            global.log.out('Bridge: the master\'s live list has been silent, opening it again.');
+            const ws = this.live;
+            this.live = null;
+            ws.close();
+            this.openlive();
+        }
+        for (const server of this.servers.values()) {
+            if (!server.feed || now - server.feed.heard <= this.config.idle) continue;
+            this.closefeed(server);
+            this.openfeed(server);
+        }
+    },
 
     // The master's live server list says which servers exist and whether they take part
     openlive() {
         if (this.stopped) return;
         const ws = new WebSocket(this.master.replace(/^http/, 'ws') + '/api/v1/servers/live');
+        ws.heard = Date.now();
         this.live = ws;
         ws.addEventListener('message', event => {
+            ws.heard = Date.now();
             let msg;
             try {
                 msg = JSON.parse(event.data);
@@ -176,9 +201,11 @@ module.exports = {
     openfeed(server) {
         if (this.stopped) return;
         const ws = new WebSocket(this.relayurl(server, '/events').replace(/^http/, 'ws'));
+        ws.heard = Date.now();
         server.feed = ws;
         server.count = undefined; // joins and leaves may have been missed while it was closed
         ws.addEventListener('message', event => {
+            ws.heard = Date.now();
             let msg;
             try {
                 msg = JSON.parse(event.data);

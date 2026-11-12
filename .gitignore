@@ -3,7 +3,8 @@ node_modules
 config.json
 .vscode
 
-# Logs, including pm2-logrotate archives (redroid__<date>.log[.gz])
+# Logs (logs/redroid.log), including pm2-logrotate archives (logs/redroid__<date>.log[.gz])
+logs/
 *.log
 *.log.gz
 

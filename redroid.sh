@@ -7,4 +7,5 @@ if ! pm2 describe pm2-logrotate >/dev/null 2>&1; then
     pm2 set pm2-logrotate:retain 10
     pm2 set pm2-logrotate:compress true
 fi
-exec pm2 start redroid.js --name redroid --log redroid.log
+mkdir -p logs
+exec pm2 start redroid.js --name redroid --log logs/redroid.log

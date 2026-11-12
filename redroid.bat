@@ -7,4 +7,5 @@ IF ERRORLEVEL 1 (
     call pm2 set pm2-logrotate:retain 10
     call pm2 set pm2-logrotate:compress true
 )
-pm2 start redroid.js --name redroid --log redroid.log
+IF NOT EXIST logs mkdir logs
+pm2 start redroid.js --name redroid --log logs\redroid.log

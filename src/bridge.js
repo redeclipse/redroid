@@ -424,8 +424,9 @@ module.exports = {
             const [item] = server.outbox.splice(i, 1);
             for (const [user, when] of server.users) if (Date.now() - when > this.config.usergap) server.users.delete(user);
             server.users.set(item.user, Date.now());
-            const err = await this.say(server, item.body);
-            if (err) this.reply(item.message, `That didn't reach the server: ${err}`);
+            const done = await this.say(server, item.body);
+            if (done.error) this.reply(item.message, `That didn't reach the server: ${done.error}`);
+            else if (done.cut) this.reply(item.message, `That was too long for the game, so only its first ${done.cut} characters reached it, ending with ...`);
             await this.wait(this.config.gamegap);
         }
         server.pumping = false;
@@ -440,15 +441,16 @@ module.exports = {
         return (orig.member && orig.member.displayName) || orig.author.globalName || orig.author.username;
     },
 
-    // POST /say as the bot's account, signing in again when the session has run out
+    // POST /say as the bot's account, signing in again when the session has run out; gives { error } or { cut }, the
+    // characters kept when the game had to shorten it
     async say(server, body) {
         for (let attempt = 0; attempt < 2; attempt++) {
             if (!server.token) {
-                if (Date.now() - server.authfailed < this.config.authwait) return 'couldn\'t sign in, trying again in a few minutes';
+                if (Date.now() - server.authfailed < this.config.authwait) return { error: 'couldn\'t sign in, trying again in a few minutes' };
                 const err = await this.signin(server);
                 if (err) {
                     server.authfailed = Date.now();
-                    return err;
+                    return { error: err };
                 }
             }
             const res = await this.request(server, '/say', body, server.token);
@@ -456,11 +458,11 @@ module.exports = {
                 server.token = null;
                 continue;
             }
-            if (res.status >= 200 && res.status < 300) return null;
+            if (res.status >= 200 && res.status < 300) return { cut: res.json && res.json.cut };
             global.log.warn(`Bridge: ${server.key} refused a message: ${res.status} ${res.error}`);
-            return res.error || `error ${res.status}`;
+            return { error: res.error || `error ${res.status}` };
         }
-        return 'couldn\'t sign in';
+        return { error: 'couldn\'t sign in' };
     },
     async signin(server) {
         const auth = this.bot.config.auth;

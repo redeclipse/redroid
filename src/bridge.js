@@ -10,6 +10,9 @@ module.exports = {
         file: './db/bridge.json',
         master: 'https://play.redeclipse.net:28888',
         via: 'discord',
+        // the in-game Privilege shown by a Discord user's name, from the access level config.access gives them: the
+        // highest listed at or below it, and none below them all
+        privileges: { 1: 'none', 2: 'player', 3: 'supporter', 4: 'moderator', 5: 'administrator', 6: 'developer', 10: 'creator' },
         webhook: 'Red Eclipse Bridge',
         retry: 30000, // ms before reopening a closed socket
         offlinenote: 600000, // ms between notes that a thread's server is offline
@@ -458,7 +461,7 @@ module.exports = {
         const to = await this.replyto(message);
         if (to) text = `@${to} ${text}`;
         const from = (message.member && message.member.displayName) || message.author.globalName || message.author.username;
-        this.send(server, { user: message.author.id, message, body: { text, from, via: this.config.via, action } });
+        this.send(server, { user: message.author.id, message, body: { text, from, via: this.config.via, action, privilege: this.privilege(message) } });
     },
 
     // Messages for a game server wait their turn: one every gamegap, and each Discord user's no more often than usergap,
@@ -495,6 +498,17 @@ module.exports = {
             await this.wait(this.config.gamegap);
         }
         server.pumping = false;
+    },
+    privilege(message) {
+        const level = global.access.level(message.guild, message.author);
+        let best = -Infinity, name = 'none';
+        for (const [at, priv] of Object.entries(this.config.privileges)) {
+            if (Number(at) <= level && Number(at) > best) {
+                best = Number(at);
+                name = priv;
+            }
+        }
+        return name;
     },
     async replyto(message) {
         const ref = message.reference && message.reference.messageId;

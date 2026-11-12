@@ -73,7 +73,15 @@ module.exports = {
         level_remove: 2,
         level_mass: 4
     },
+    // Pending remove confirmations by interaction id; lost on restart
     buttons: {},
+    buttonttl: 15 * 60 * 1000,
+    sweepbuttons() {
+        const now = Date.now();
+        for (const id of Object.keys(this.buttons)) {
+            if (now - this.buttons[id].created > this.buttonttl) delete this.buttons[id];
+        }
+    },
     getdict(action) {
         const word = action.options.getString('dictionary');
         global.dict.check(word);
@@ -162,7 +170,9 @@ module.exports = {
                         },
                     ]
                 };
+                this.sweepbuttons();
                 this.buttons[action.id] = {
+                    created: Date.now(),
                     action: 'remove',
                     user: action.user,
                     page: {
@@ -183,7 +193,8 @@ module.exports = {
         }
     },
     async button(bot, action, id, op) {
-        if (!this.buttons[id]) throw `No button interaction for message '${id}'.`;
+        this.sweepbuttons();
+        if (!this.buttons[id]) throw 'This request has expired, run the command again.';
         const button = this.buttons[id];
         if (action.user.id !== button.user.id) throw `You are not the author of message '${id}'.`;
         switch (button.action) {

@@ -194,6 +194,11 @@ module.exports = {
         delete this.data.threads[server.key];
         this.save();
     },
+    // How many are on a server, from what the master's list says it's playing
+    players(server) {
+        const status = server.info && server.info.status;
+        return status && Array.isArray(status.players) ? status.players.length : 0;
+    },
 
     // Game markup, such as colours and icons, has no meaning on Discord
     plain(str) {
@@ -262,6 +267,7 @@ module.exports = {
                 return;
             }
             case 'map': {
+                if (!this.players(server)) return; // empty servers rotate maps with nobody to tell
                 const thread = await this.thread(server, false); // a map change alone doesn't start a thread
                 if (!thread) return;
                 if (thread.archived) await thread.setArchived(false);

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Client, Collection, GatewayIntentBits } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, RESTEvents } = require('discord.js');
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const timestamp = () => '[' + new Date().toISOString() + ']';
@@ -43,6 +43,7 @@ class Bot extends Client {
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent
             ],
+            rest: { invalidRequestWarningInterval: 1000 }
         });
 
         // Setup globals
@@ -91,9 +92,28 @@ class Bot extends Client {
         }
 
         this.on('debug', msg => global.log.debug(msg));
+
+        // discord.js waits out rate limits itself; each is noted here, and the log channel hears a summary now and then
+        this.ratelimits = { count: 0, routes: new Set() };
+        this.rest.on(RESTEvents.RateLimited, data => {
+            global.log.out(`Rate limited: ${data.method} ${data.route} (${data.scope}${data.global ? ', global' : ''}), limit ${data.limit}, waiting ${data.retryAfter}ms`);
+            this.ratelimits.count++;
+            this.ratelimits.routes.add(`${data.method} ${data.route}`);
+        });
+        this.ratesummary = setInterval(() => {
+            if (!this.ratelimits.count) return;
+            const { count, routes } = this.ratelimits;
+            global.log.warn(`Hit ${count} rate ${count === 1 ? 'limit' : 'limits'} on ${routes.size} ${routes.size === 1 ? 'route' : 'routes'} in the last 10 minutes: ${[...routes].join(', ')}`);
+            this.ratelimits = { count: 0, routes: new Set() };
+        }, 600000);
+        // Too many refused requests (401, 403, 429) in 10 minutes gets the bot's address banned by Discord for a while
+        this.rest.on(RESTEvents.InvalidRequestWarning, data => {
+            global.log.warn(`${data.count} refused requests to Discord in the last 10 minutes, at 10000 it bans the bot's address; ${Math.round(data.remainingTime / 1000)}s until the count resets.`);
+        });
     }
 
     kill() {
+        clearInterval(this.ratesummary);
         global.log.bot = null;
         this.online = false;
         return this.destroy();

@@ -1,4 +1,3 @@
 #!/bin/sh
-node deploy.js
-echo "Press any key to exit..."
-read c
+cd "$(dirname "$0")" || exit 1
+exec node deploy.js

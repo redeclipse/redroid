@@ -2,9 +2,11 @@
   "name": "redroid",
   "version": "0.0.1",
   "description": "The Red Eclipse Droid",
-  "main": "index.js",
+  "main": "redroid.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node redroid.js",
+    "deploy": "node deploy.js",
+    "lint": "eslint ."
   },
   "repository": {
     "type": "git",

@@ -3,3 +3,9 @@ node_modules
 config.json
 .vscode
 *.log
+
+# Agent files
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.claude/

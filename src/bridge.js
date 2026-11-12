@@ -27,7 +27,8 @@ module.exports = {
         renames: 2, // renames of one thread Discord allows every renamewindow
         renamewindow: 600000,
         pause: 600000, // ms a thread that refused the bot is left alone, as each refusal counts towards Discord's ban
-        heldcheck: 500 // ms between looks at the queue while every post in it waits for a held thread, so new ones for other threads go on
+        heldcheck: 500, // ms between looks at the queue while every post in it waits for a held thread, so new ones for other threads go on
+        timeout: 10000 // ms before a request to a game server is given up
     },
     bot: null,
     forum: null,
@@ -568,7 +569,8 @@ module.exports = {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers.Authorization = `Bearer ${token}`;
         try {
-            const res = await fetch(this.relayurl(server, path), { method: 'POST', headers, body: JSON.stringify(body) });
+            // a server that never answers would otherwise hold up everything else waiting for it
+            const res = await fetch(this.relayurl(server, path), { method: 'POST', headers, body: JSON.stringify(body), signal: AbortSignal.timeout(this.config.timeout) });
             let json = null;
             try {
                 json = await res.json();
@@ -579,7 +581,7 @@ module.exports = {
             return { status: res.status, json, error: json && json.error };
         }
         catch (e) {
-            return { status: 0, json: null, error: e.message };
+            return { status: 0, json: null, error: e.name === 'TimeoutError' ? 'the server took too long to answer' : e.message };
         }
     },
     // The game's challenge is a point on P-192, a sign for y's parity then x in hex, and its answer the x of that point

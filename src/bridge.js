@@ -486,13 +486,49 @@ module.exports = {
                 return;
             }
             case 'map': {
+                server.mode = this.plain(msg.mode); // for the match's result, which doesn't name it
                 if (!this.players(server)) return; // empty servers rotate maps with nobody to tell
                 this.post({ server, kind: 'line', create: false, content: `Now playing **${this.escape(this.plain(msg.mode))}** on **${this.escape(this.plain(msg.map))}**` });
+                return;
+            }
+            case 'result': {
+                if (!msg.match) return;
+                this.post({ server, kind: 'line', create: false, content: `Match over: ${this.result(msg.match, server.mode)}` });
                 return;
             }
             default:
                 return;
         }
+    },
+    // Who won a match, as the website's and the game's server browsers say it: the best team or player first, then the mode and map
+    result(m, mode) {
+        const teams = Array.isArray(m.teams) ? m.teams : [], players = Array.isArray(m.players) ? m.players : [];
+        const clock = ms => {
+            const secs = Math.floor(ms / 1000);
+            return `${Math.floor(secs / 60)}:${String(secs % 60).padStart(2, '0')}.${String(ms % 1000).padStart(3, '0')}`;
+        };
+        const laptime = ms => ms > 0 ? clock(ms) : 'no time';
+        const team = t => {
+            const n = this.plain(t.team);
+            return `**${n.charAt(0).toUpperCase()}${n.slice(1)}**`;
+        };
+        const player = p => `**${this.escape(this.plain(p.name) || 'someone')}**`;
+        let out;
+        if (teams.length >= 2) {
+            const [a, b] = teams;
+            const score = m.timed ? laptime(a.score) : `${a.score}${a.score < 0 || b.score < 0 ? ' to ' : '-'}${b.score}`;
+            out = m.draw ? `${team(a)} and ${team(b)} drew ${score}` : `${team(a)} won ${score}`;
+        }
+        else if (players.length) {
+            const p = players[0];
+            const score = m.timed ? (p.points > 0 ? `in ${laptime(p.points)}` : 'without a time') : `with ${p.points} point${p.points === 1 ? '' : 's'}`;
+            out = m.draw && players.length >= 2 ? `${player(p)} and ${player(players[1])} drew ${score}` : `${player(p)} won ${score}`;
+        }
+        else {
+            out = 'Nobody won';
+        }
+        const where = this.escape(this.plain(m.maptitle || m.map));
+        return mode ? `${out} in **${this.escape(mode)}** on **${where}**` : `${out} on **${where}**`;
     },
     // A player's standing as the game's own lines name it, such as "global moderator", when it is above minpriv
     standing(client, minpriv) {

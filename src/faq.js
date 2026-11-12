@@ -20,27 +20,7 @@ module.exports = {
     },
     save() {
         global.log.out('Saving FAQs: ./db/faq.json');
-        try {
-            fs.accessSync('./db/faq.json', fs.constants.R_OK);
-            try {
-                fs.renameSync('./db/faq.json', './db/faq.bak');
-                global.log.out('Saving FAQs backup: ./db/faq.bak');
-            }
-            catch (e) {
-                global.log.error(`Saving FAQs backup failed: ./db/faq.bak (${e})`);
-            }
-        }
-        catch (e) {
-            global.log.warn(`Saving FAQs backup not found: ./db/faq.json (${e})`);
-        }
-        try {
-            fs.writeFileSync('./db/faq.json', JSON.stringify(this.faqs, null, 2));
-            return true;
-        }
-        catch (e) {
-            global.log.error(`Saving FAQs failed: ./db/faq.json (${e})`);
-            return false;
-        }
+        return global.tools.writejson('./db/faq.json', this.faqs);
     },
     findtarg(target, level = 0) {
         if (!this.faqs[target]) {

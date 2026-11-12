@@ -25,14 +25,7 @@ module.exports = {
     },
     save(word) {
         global.log.out(`Saving dictionary: ./db/dict/${word}.json`);
-        try {
-            fs.writeFileSync(`./db/dict/${word}.json`, JSON.stringify(this.words[word], null, 2));
-            return true;
-        }
-        catch (e) {
-            global.log.error(`Saving dictionary failed: ./db/dict/${word}.json (${e})`);
-            return false;
-        }
+        return global.tools.writejson(`./db/dict/${word}.json`, this.words[word]);
     },
     choices() {
         let result = []; // eslint-disable-line prefer-const
@@ -78,7 +71,7 @@ module.exports = {
         const data = this.words[word].filter(value => value === str);
         if (data && data.length > 0) throw `Dictionary '${word}'' already has '${str}'.'`;
         this.words[word].push(str);
-        this.save(word);
+        if (!this.save(word)) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
         return this.words[word][this.words[word].length - 1];
     },
     remove(word, list) {
@@ -87,7 +80,7 @@ module.exports = {
         const data = this.words[word].filter(value => !list.includes(value));
         if (data.length <= 0) throw 'Remove request reduces dictionary to zero.';
         this.words[word] = data;
-        this.save(word);
+        if (!this.save(word)) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
         return len - this.words[word].length;
     },
 };

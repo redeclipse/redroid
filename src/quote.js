@@ -20,27 +20,7 @@ module.exports = {
     },
     save() {
         global.log.out('Saving quotes: ./db/quote.json');
-        try {
-            fs.accessSync('./db/quote.json', fs.constants.R_OK);
-            try {
-                fs.renameSync('./db/quote.json', './db/quote.bak');
-                global.log.out('Saving quotes backup: ./db/quote.bak');
-            }
-            catch (e) {
-                global.log.error(`Saving quotes backup failed: ./db/quote.bak (${e})`);
-            }
-        }
-        catch (e) {
-            global.log.warn(`Saving quotes backup not found: ./db/quote.json (${e})`);
-        }
-        try {
-            fs.writeFileSync('./db/quote.json', JSON.stringify(this.quotes, null, 2));
-            return true;
-        }
-        catch (e) {
-            global.log.error(`Saving quotes failed: ./db/quote.json (${e})`);
-            return false;
-        }
+        return global.tools.writejson('./db/quote.json', this.quotes);
     },
     findtarg(target, level = 0) {
         if (!this.quotes[target]) {

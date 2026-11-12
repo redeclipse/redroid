@@ -1,3 +1,5 @@
+const fs = require('fs');
+
 module.exports = {
     name: 'tools',
     config: {
@@ -64,6 +66,25 @@ module.exports = {
     async pickmember(action, value) {
         if (global.access.level(action.guild, action.user) >= this.config.level_random) return await this.randommember(action, value);
         return await this.defaultmember(action, value);
+    },
+
+    // Files
+    // Write to a temporary file and rename it over the original, so a crash mid-write cannot truncate the data;
+    // the previous version is kept as <name>.bak
+    writejson(file, data) {
+        const tmp = `${file}.tmp`, bak = file.replace(/\.json$/, '') + '.bak';
+        try {
+            fs.writeFileSync(tmp, JSON.stringify(data, null, 2));
+            if (fs.existsSync(file)) fs.copyFileSync(file, bak);
+            fs.renameSync(tmp, file);
+            return true;
+        }
+        catch (e) {
+            global.log.error(`Saving failed: ${file} (${e.message})`);
+            try { fs.rmSync(tmp, { force: true }); }
+            catch { /* nothing more to do */ }
+            return false;
+        }
     },
 
     // Messages

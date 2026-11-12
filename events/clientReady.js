@@ -8,7 +8,8 @@ module.exports = {
 
         const title = `${client.user.tag} <@${client.user.id}>`;
         process.title = title;
-        process.stdout.write(`\u001B]0;${title}\u0007`);
+        // Terminal title escape; under pm2 stdout is a log file
+        if (process.stdout.isTTY) process.stdout.write(`\u001B]0;${title}\u0007`);
 
         global.log.audit(`Ready: ${title}`);
 

@@ -5,17 +5,14 @@ module.exports = {
     once: false,
     execute(bot, oldmember, member) {
         global.log.out(`<@${member.id}> (${member.user.tag}) has updated information.`);
-        if (member.user.bot || bot.online !== true || !bot.config.channels.general) return;
-        const chan = bot.channels.cache.get(bot.config.channels.general);
-        if (!chan) return;
+        if (member.user.bot) return;
         if (oldmember.nickname !== member.nickname || oldmember.displayName !== member.displayName) {
             const oldnick = oldmember.nickname ? oldmember.nickname : oldmember.displayName, newnick = member.nickname ? member.nickname : member.displayName;
-            const embed = {
+            global.post.notice({
                 color: 0xffff88,
                 title: '✉ Nickname Update',
-                description: `<@${member.id}> (${oldmember.user.tag}) renamed from **${oldnick}** to **${newnick}**.`
-            };
-            chan.send({ embeds: [embed] });
+                text: `<@${member.id}> (${oldmember.user.tag}) renamed from **${oldnick}** to **${newnick}**.`
+            });
         }
         /*
         let found = false;

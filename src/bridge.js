@@ -22,7 +22,8 @@ module.exports = {
         usergap: 2000, // ms between one Discord user's messages to one game server, the game's 5 every 10 seconds
         userbacklog: 5, // one Discord user's messages waiting for one game server before more are refused
         renames: 2, // renames of one thread Discord allows every renamewindow
-        renamewindow: 600000
+        renamewindow: 600000,
+        pause: 600000 // ms a thread that refused the bot is left alone, as each refusal counts towards Discord's ban
     },
     bot: null,
     forum: null,
@@ -40,6 +41,7 @@ module.exports = {
     renamed: new Map(), // thread id -> when it was last renamed, for the ones still inside renamewindow
     renaming: new Set(), // thread ids with a rename waiting for a slot
     held: new Map(), // thread id -> when Discord will take an edit to it again, its posts waiting until then
+    paused: new Map(), // thread or forum id -> until when it is left alone for refusing the bot
 
     start(bot) {
         const auth = bot.config.auth || {};
@@ -200,6 +202,7 @@ module.exports = {
     // Everything for Discord waits its turn here, one post every discordgap, in the order it came for each thread;
     // a thread Discord won't edit yet keeps its posts waiting while the others go on
     post(item) {
+        if (this.paused.get(this.pausekey(item)) > Date.now()) return;
         this.outbox.push(item);
         if (this.outbox.length > this.config.backlog) {
             // the oldest go first, and their thread is told how many
@@ -227,6 +230,15 @@ module.exports = {
                 if (err instanceof RateLimitError && this.threadid(item)) {
                     this.held.set(this.threadid(item), Date.now() + (err.sublimitTimeout || err.retryAfter));
                     this.outbox.unshift(item);
+                    continue;
+                }
+                if (err && (err.code === RESTJSONErrorCodes.MissingAccess || err.code === RESTJSONErrorCodes.MissingPermissions)) {
+                    const key = this.pausekey(item);
+                    this.paused.set(key, Date.now() + this.config.pause);
+                    const before = this.outbox.length;
+                    this.outbox = this.outbox.filter(o => this.pausekey(o) !== key);
+                    global.log.warn(`Bridge: <#${key}> refused the bot (${err.message}), dropping ${before - this.outbox.length + 1} posts and leaving it alone for ${this.config.pause / 60000} minutes.`);
+                    await this.wait(this.config.discordgap);
                     continue;
                 }
                 // a thread a moderator deleted is made again, and the post tried once more there
@@ -269,6 +281,10 @@ module.exports = {
     // The thread a post goes to, if it has one yet
     threadid(item) {
         return item.message ? item.message.channelId : this.data.threads[item.server.key];
+    },
+    // What is left alone when Discord refuses a post: its thread, or the forum while it has none
+    pausekey(item) {
+        return this.threadid(item) || this.relay;
     },
     async deliver(item) {
         if (item.kind === 'reply') {

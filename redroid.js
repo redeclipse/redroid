@@ -143,23 +143,17 @@ class Bot extends Client {
                 src.shutdown();
             }
         }
+        // The log entry saying why is the one most worth getting out
+        if (global.post) await global.post.finish(5000);
         await this.kill();
         this.emit('shutdown', restart);
     }
 
     log(type, str, ...args) {
-        if (this.online !== true || !this.config.channels.log) return;
-        const chan = this.channels.cache.get(this.config.channels.log);
-        if (!chan) return;
-        let msg = `[${type}] ${str}`;
-        if (args && args.length > 0) {
-            msg += '\n```\n';
-            msg += JSON.stringify(args, null, 2);
-            msg += '```';
-        }
-        if (msg.length > 2000) msg = msg.slice(0, 1980) + '\n... (truncated)';
-        // Report to the console only, logging here again could loop
-        chan.send(msg).catch(err => console.error(timestamp() + ` Failed to send to log channel: ${err.message}`));
+        if (this.online !== true || !global.post) return;
+        let msg = `${str}`;
+        if (args && args.length > 0) msg += '\n```\n' + JSON.stringify(args, null, 2) + '```';
+        global.post.log(type, msg);
     }
 }
 

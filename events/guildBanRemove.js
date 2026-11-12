@@ -6,13 +6,7 @@ module.exports = {
     async execute(bot, ban) {
         global.log.audit(`<@${ban.user.id}> (${ban.user.tag}) was unbanned.`);
         if (ban.user.bot || bot.online !== true || !bot.config.channels.general) return;
-        const chan = bot.channels.cache.get(bot.config.channels.general);
-        if (!chan) return;
-        const embed = {
-            color: 0x88ffff,
-            title: '🔆 Unbanned',
-            description: `<@${ban.user.id}> (${ban.user.tag}) was unbanned`
-        };
+        let text = `<@${ban.user.id}> (${ban.user.tag}) was unbanned`;
 
         const audit = await ban.guild.fetchAuditLogs({
             limit: 1,
@@ -21,9 +15,9 @@ module.exports = {
         const banlog = audit.entries.first();
 
         // The latest entry may belong to a different ban
-        if (banlog && banlog.targetId === ban.user.id && banlog.executorId) embed.description += ` by <@${banlog.executorId}>.`;
-        else embed.description += '.';
+        if (banlog && banlog.targetId === ban.user.id && banlog.executorId) text += ` by <@${banlog.executorId}>.`;
+        else text += '.';
 
-        chan.send({ embeds: [embed] });
+        global.post.notice({ color: 0x88ffff, title: '🔆 Unbanned', text });
     },
 };

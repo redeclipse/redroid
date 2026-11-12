@@ -256,10 +256,12 @@ module.exports = {
                 i++; // other threads keep their places
                 continue;
             }
-            // anything else in this thread ends the run, so it keeps its order
-            if (o.kind !== head.kind || o.username !== head.username || o.create !== head.create) break;
+            // anything else in this thread ends the run, so it keeps its order; a run of joins, leaves and map changes
+            // is one post, keeping the bot under Discord's 5 posts every 5 seconds in a channel
+            if (o.kind !== head.kind || o.username !== head.username) break;
             if (head.content.length + 1 + o.content.length > this.config.postsize) break;
             head.content += '\n' + o.content;
+            head.create = head.create || o.create; // the run starts a thread if any of it would
             this.outbox.splice(i, 1);
         }
         return head;

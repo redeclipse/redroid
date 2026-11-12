@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType, ApplicationCommandType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -5,7 +7,7 @@ module.exports = {
             description: 'Measures penishes.',
             options: [
                 {
-                    type: 6,
+                    type: ApplicationCommandOptionType.User,
                     name: 'user',
                     description: 'Select a user',
                     required: false
@@ -14,7 +16,7 @@ module.exports = {
         },
         user: {
             name: 'Penish',
-            type: 2
+            type: ApplicationCommandType.User
         },
         level: 1
     },
@@ -52,6 +54,6 @@ module.exports = {
         embed.description += `= ${centimeters}cm [${inches}in]\n`;
         embed.description += '```';
         embed.footer.text = `Score: ${percent}%`;
-        action.reply({ embeds: [ embed ] });
+        await action.reply({ embeds: [ embed ] });
     },
 };

@@ -1,9 +1,11 @@
 const fs = require('fs');
-const { REST } = require('@discordjs/rest');
-const { Routes } = require('discord-api-types/v9');
+const { REST, Routes } = require('discord.js');
 const { clientId, guildId, token } = require('./config.json');
 
-// Load source files and start them
+// Commands read from the source modules when building their config (e.g. dict choices)
+global.log = { out: console.log, warn: console.warn, error: console.error, debug: console.log };
+
+// Load source files without starting them
 const srcfiles = fs.readdirSync('./src').filter(file => file.endsWith('.js'));
 for (const file of srcfiles) {
     console.log(`Loading source: ${file}`);
@@ -12,9 +14,8 @@ for (const file of srcfiles) {
 }
 
 const commands = [];
-const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
-
-for (const file of commandFiles) {
+const commandfiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
+for (const file of commandfiles) {
     console.log(`Loading command: ${file}`);
     const command = require(`./commands/${file}`);
     if (command.config) {
@@ -22,20 +23,18 @@ for (const file of commandFiles) {
         if (command.config.user) commands.push(command.config.user);
         if (command.config.mesg) commands.push(command.config.mesg);
     }
-    else { console.error('ERROR: Command provides no config.'); }
+    else { console.error(`Command provides no config: ${file}`); }
 }
 
-const rest = new REST({ version: '9' }).setToken(token);
+const rest = new REST().setToken(token);
 
 (async () => {
     try {
-        await rest.put(
-            Routes.applicationGuildCommands(clientId, guildId),
-            { body: commands },
-        );
-        console.log('Successfully registered application commands.');
+        await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
+        console.log(`Successfully registered ${commands.length} application commands.`);
     }
     catch (error) {
         console.error(error);
+        process.exitCode = 1;
     }
 })();

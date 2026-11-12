@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "description": "The Red Eclipse Droid",
   "main": "redroid.js",
+  "engines": {
+    "node": ">=22.12"
+  },
   "scripts": {
     "start": "node redroid.js",
     "deploy": "node deploy.js",
@@ -19,12 +22,12 @@
   },
   "homepage": "https://github.com/redeclipse/redroid#readme",
   "dependencies": {
-    "@discordjs/builders": "^1.2.0",
-    "@discordjs/rest": "^0.1.0-canary.0",
-    "discord-api-types": "^0.37.5",
-    "discord.js": "^14.3.0"
+    "discord.js": "^14.28.1"
   },
   "devDependencies": {
-    "eslint": "^8.23.0"
+    "@eslint/js": "^10.0.1",
+    "@stylistic/eslint-plugin": "^5.10.0",
+    "eslint": "^10.14.0",
+    "globals": "^17.14.0"
   }
 }

@@ -8,6 +8,6 @@ module.exports = {
         level: 1
     },
     async execute(bot, action) {
-        action.reply({ content: 'Pong! You smell.' });
+        await action.reply({ content: 'Pong! You smell.' });
     },
 };

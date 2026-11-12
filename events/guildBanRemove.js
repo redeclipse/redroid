@@ -1,5 +1,7 @@
+const { AuditLogEvent, Events } = require('discord.js');
+
 module.exports = {
-    name: 'guildBanRemove',
+    name: Events.GuildBanRemove,
     once: false,
     async execute(bot, ban) {
         global.log.out(`<@${ban.user.id}> (${ban.user.tag}) was unbanned.`);
@@ -14,11 +16,12 @@ module.exports = {
 
         const audit = await ban.guild.fetchAuditLogs({
             limit: 1,
-            type: 'MEMBER_BAN_REMOVE'
+            type: AuditLogEvent.MemberBanRemove
         });
         const banlog = audit.entries.first();
 
-        if (banlog) embed.description += ` by <@${banlog.executor.id}>.`;
+        // The latest entry may belong to a different ban
+        if (banlog && banlog.targetId === ban.user.id && banlog.executorId) embed.description += ` by <@${banlog.executorId}>.`;
         else embed.description += '.';
 
         chan.send({ embeds: [embed] });

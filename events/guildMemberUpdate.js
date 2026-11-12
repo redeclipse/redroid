@@ -1,5 +1,7 @@
+const { Events } = require('discord.js');
+
 module.exports = {
-    name: 'guildMemberUpdate',
+    name: Events.GuildMemberUpdate,
     once: false,
     execute(bot, oldmember, member) {
         global.log.out(`<@${member.id}> (${member.user.tag}) has updated information.`);

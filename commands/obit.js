@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType, ApplicationCommandType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -5,7 +7,7 @@ module.exports = {
             description: 'Prints an obituary: <user> was {killed} with {object} [by <author>] [, {style}]',
             options: [
                 {
-                    type: 6,
+                    type: ApplicationCommandOptionType.User,
                     name: 'user',
                     description: 'Select a user',
                     required: false
@@ -14,7 +16,7 @@ module.exports = {
         },
         user: {
             name: 'Obit',
-            type: 2
+            type: ApplicationCommandType.User
         },
         level: 1
     },
@@ -33,6 +35,6 @@ module.exports = {
             embed.description += ', ';
             embed.description += global.dict.query('style', action.user, user);
         }
-        action.reply({ embeds: [ embed ] });
+        await action.reply({ embeds: [ embed ] });
     },
 };

@@ -1,5 +1,7 @@
+const { Events } = require('discord.js');
+
 module.exports = {
-    name: 'guildMemberAdd',
+    name: Events.GuildMemberAdd,
     once: false,
     execute(bot, member) {
         global.log.out(`<@${member.id}> (${member.user.tag}) has joined the server.`);

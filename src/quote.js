@@ -119,6 +119,6 @@ module.exports = {
         if (!targ) return null;
         if (!this.quotes[targ]) this.quotes[targ] = [];
         this.quotes[targ].push(str);
-        return this.quotes[targ].last();
+        return this.quotes[targ].at(-1);
     }
 };

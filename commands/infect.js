@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType, ApplicationCommandType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -5,7 +7,7 @@ module.exports = {
             description: 'Infect people: <user> was {transmit} with {region} {disease}',
             options: [
                 {
-                    type: 6,
+                    type: ApplicationCommandOptionType.User,
                     name: 'user',
                     description: 'Select a user',
                     required: false
@@ -14,7 +16,7 @@ module.exports = {
         },
         user: {
             name: 'Infect',
-            type: 2
+            type: ApplicationCommandType.User
         },
         level: 1
     },
@@ -30,6 +32,6 @@ module.exports = {
         embed.description += global.dict.query('region', action.user, user);
         embed.description += ' ';
         embed.description += global.dict.query('disease', action.user, user);
-        action.reply({ embeds: [ embed ] });
+        await action.reply({ embeds: [ embed ] });
     },
 };

@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -5,11 +7,10 @@ module.exports = {
             description: 'Consults the Oracle regarding the future.',
             options: [
                 {
-                    type: 3,
+                    type: ApplicationCommandOptionType.String,
                     name: 'question',
                     description: 'Ask a question',
-                    required: true,
-                    choices: null
+                    required: true
                 }
             ]
         },
@@ -30,6 +31,6 @@ module.exports = {
         embed.description += '*';
         embed.description += global.dict.query('answer', action.user, action.user, question);
         embed.description += '*';
-        action.reply({ embeds: [embed] });
+        await action.reply({ embeds: [embed] });
     },
 };

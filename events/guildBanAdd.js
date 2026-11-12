@@ -1,5 +1,7 @@
+const { AuditLogEvent, Events } = require('discord.js');
+
 module.exports = {
-    name: 'guildBanAdd',
+    name: Events.GuildBanAdd,
     once: false,
     async execute(bot, ban) {
         global.log.out(`<@${ban.user.id}> (${ban.user.tag}) was banned.`);
@@ -14,13 +16,14 @@ module.exports = {
 
         const audit = await ban.guild.fetchAuditLogs({
             limit: 1,
-            type: 'MEMBER_BAN_ADD'
+            type: AuditLogEvent.MemberBanAdd
         });
         const banlog = audit.entries.first();
 
-        if (banlog) embed.description += ` by <@${banlog.executor.id}> (${banlog.reason ? banlog.reason : 'No reason'}).`;
+        // The latest entry may belong to a different ban
+        if (banlog && banlog.targetId === ban.user.id && banlog.executorId) embed.description += ` by <@${banlog.executorId}> (${banlog.reason ? banlog.reason : 'No reason'}).`;
         else embed.description += '.';
 
-        chan.send({ embeds: [embed] }).then(s => s.react(ban.guild.emojis.cache.get('839202957135446097')));
+        chan.send({ embeds: [embed] }).then(s => global.tools.react(s, '839202957135446097'));
     },
 };

@@ -1,5 +1,7 @@
+const { Events } = require('discord.js');
+
 module.exports = {
-    name: 'guildMemberRemove',
+    name: Events.GuildMemberRemove,
     once: false,
     execute(bot, member) {
         global.log.out(`<@${member.id}> (${member.user.tag}) has left the server.`);
@@ -15,6 +17,6 @@ module.exports = {
                 url: member.user.displayAvatarURL()
             }
         };
-        chan.send({ embeds: [ embed ] }).then(s => s.react(member.guild.emojis.cache.get('839202957135446097')));
+        chan.send({ embeds: [ embed ] }).then(s => global.tools.react(s, '839202957135446097'));
     },
 };

@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -5,7 +7,7 @@ module.exports = {
             description: 'MUD event: <user> {verb} {adverb} {object}',
             options: [
                 {
-                    type: 6,
+                    type: ApplicationCommandOptionType.User,
                     name: 'user',
                     description: 'Select a user',
                     required: false
@@ -26,6 +28,6 @@ module.exports = {
         embed.description += global.dict.query('adverb', action.user, user);
         embed.description += ' ';
         embed.description += global.dict.query('object', action.user, user);
-        action.reply({ embeds: [ embed ] });
+        await action.reply({ embeds: [ embed ] });
     },
 };

@@ -1,7 +1,9 @@
+const { Events } = require('discord.js');
+
 module.exports = {
-    name: 'warn',
+    name: Events.Warn,
     once: false,
     execute(bot, warning) {
-        global.log.wrn(`WARNING: ${warning}`);
+        global.log.warn(`WARNING: ${warning}`);
     },
 };

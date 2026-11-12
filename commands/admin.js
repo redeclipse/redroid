@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -7,12 +9,12 @@ module.exports = {
                 {
                     name: 'restart',
                     description: 'Restarts the bot.',
-                    type: 1
+                    type: ApplicationCommandOptionType.Subcommand
                 },
                 {
                     name: 'shutdown',
                     description: 'Shuts down the bot.',
-                    type: 1
+                    type: ApplicationCommandOptionType.Subcommand
                 }
             ]
         },
@@ -22,14 +24,14 @@ module.exports = {
         const func = action.options.getSubcommand();
         switch (func) {
             case 'restart': {
-                action.reply({
+                await action.reply({
                     content: 'Okay, restarting...'
                 });
                 action.client.shutdown(true);
                 break;
             }
             case 'shutdown': {
-                action.reply({
+                await action.reply({
                     content: 'Okay, shutting down...'
                 });
                 action.client.shutdown();

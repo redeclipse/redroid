@@ -103,7 +103,7 @@ module.exports = {
         else {
             const keys = Object.keys(this.faqs);
             const num = global.tools.rand(0, keys.length);
-            result = { name: keys[num], vale: this.lookup(keys[num]) };
+            result = { name: keys[num], value: this.lookup(keys[num]) };
         }
         return result;
     },

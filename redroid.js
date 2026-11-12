@@ -1,32 +1,41 @@
 const fs = require('fs');
 const { Client, Collection, GatewayIntentBits } = require('discord.js');
-const wait = ms => new Promise(_ => setTimeout(_, ms));
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+const timestamp = () => '[' + new Date().toISOString() + ']';
 
 global.log = {
     bot: null,
     error(str, ...args) {
-        const datestr = new Date().toISOString();
-        console.error('[' + datestr + '] ' + str, ...args);
+        console.error(timestamp() + ' ' + str, ...args);
         if (this.bot) this.bot.log('ERROR', str, ...args);
     },
     out(str, ...args) {
-        const datestr = new Date().toISOString();
-        console.log('[' + datestr + '] ' + str, ...args);
+        console.log(timestamp() + ' ' + str, ...args);
         if (this.bot) this.bot.log('LOG', str, ...args);
     },
     warn(str, ...args) {
-        const datestr = new Date().toISOString();
-        console.warn('[' + datestr + '] ' + str, ...args);
+        console.warn(timestamp() + ' ' + str, ...args);
         if (this.bot) this.bot.log('WARN', str, ...args);
+    },
+    // Console only, never sent to the log channel
+    debug(str, ...args) {
+        console.log(timestamp() + ' ' + str, ...args);
     }
 };
-
 
 class Bot extends Client {
     // Instantiate the Discord client
     constructor() {
         super({
-            intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.GuildPresences, GatewayIntentBits.GuildMembers, GatewayIntentBits.GuildBans],
+            intents: [
+                GatewayIntentBits.Guilds,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.GuildMessageReactions,
+                GatewayIntentBits.GuildPresences,
+                GatewayIntentBits.GuildMembers,
+                GatewayIntentBits.GuildModeration
+            ],
         });
 
         // Setup globals
@@ -61,7 +70,7 @@ class Bot extends Client {
                 if (command.config.mesg) this.commands.set(command.config.mesg.name, command);
             }
             else {
-                global.log.error('ERROR: Command provides no config.');
+                global.log.error(`Command provides no config: ${file}`);
             }
         }
 
@@ -74,62 +83,36 @@ class Bot extends Client {
             else this.on(event.name, (...args) => event.execute(this, ...args));
         }
 
-        // Console redirections
-        this.on('error', global.log.error);
-        this.on('warn', global.log.warn);
-        this.on('debug', global.log.out);
-
-        // Process handlers
-        process.on('exit', () => this.shutdown());
-
-        process.on('uncaughtException', (err) => {
-            const msg = (err ? err.stack || err : '').toString();
-            global.log.error(`Uncaught exception:\n ${msg}`);
-            if (this.shuttingdown) {
-                this.kill();
-                this.emit('shutdown', false);
-            }
-        });
-
-        process.on('unhandledRejection', err => {
-            const msg = (err ? err.stack || err : '').toString();
-            global.log.error(`Unhandled rejection:\n ${msg}`);
-            if (this.shuttingdown) {
-                this.kill();
-                this.emit('shutdown', false);
-            }
-        });
-
-        process.on('SIGINT', () => this.shutdown());
-        process.on('SIGTERM', () => this.shutdown());
-        process.on('SIGKILL', () => this.shutdown());
-        process.on('SIGHUP', () => this.shutdown(true));
+        this.on('debug', msg => global.log.debug(msg));
     }
 
     kill() {
         global.log.bot = null;
         this.online = false;
-        this.destroy();
+        return this.destroy();
     }
 
     start() {
         if (!this.config) return false;
-        this.login(this.config.token);
+        this.login(this.config.token).catch(err => {
+            global.log.error(`Login failed: ${err.message}`);
+            this.shutdown();
+        });
         return true;
     }
 
-    shutdown(restart = false) {
+    async shutdown(restart = false) {
         if (this.shuttingdown) return;
         global.log.out('Shutdown request received...');
         this.shuttingdown = true;
         for (const source of global.sources) {
             const src = global[source];
-            if (typeof mod === 'object') {
+            if (typeof src === 'object' && typeof src.shutdown === 'function') {
                 global.log.out(`Shutting down source: ${src.name ? src.name : source}`);
-                if (typeof src.shutdown === 'function') src.shutdown();
+                src.shutdown();
             }
         }
-        this.kill();
+        await this.kill();
         this.emit('shutdown', restart);
     }
 
@@ -143,16 +126,19 @@ class Bot extends Client {
             msg += JSON.stringify(args, null, 2);
             msg += '```';
         }
-        chan.send(msg);
+        // Report to the console only, logging here again could loop
+        chan.send(msg).catch(err => console.error(timestamp() + ` Failed to send to log channel: ${err.message}`));
     }
 }
 
+let bot = null;
+
 const start = () => {
-    const bot = new Bot();
-    bot.once('shutdown', (reboot) => {
+    bot = new Bot();
+    bot.once('shutdown', async (reboot) => {
         if (reboot) {
             global.log.out('Process has exited. Rebooting...');
-            wait(3000);
+            await wait(3000);
             start();
         }
         else {
@@ -162,5 +148,18 @@ const start = () => {
     });
     bot.start();
 };
+
+// Process handlers, registered once and acting on the current bot
+const fatal = (what, err) => {
+    const msg = (err ? err.stack || err : '').toString();
+    global.log.error(`${what}:\n ${msg}`);
+    // A failure during shutdown would otherwise leave the process hanging
+    if (bot && bot.shuttingdown) process.exit(1);
+};
+process.on('uncaughtException', err => fatal('Uncaught exception', err));
+process.on('unhandledRejection', err => fatal('Unhandled rejection', err));
+process.on('SIGINT', () => bot.shutdown());
+process.on('SIGTERM', () => bot.shutdown());
+process.on('SIGHUP', () => bot.shutdown(true));
 
 start();

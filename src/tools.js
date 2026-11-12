@@ -20,8 +20,7 @@ module.exports = {
 
     // Users / Members
     async getmember(action, user) {
-        const members = await action.guild.members.fetch();
-        return members.filter(m => m.user.id === user.id).first();
+        return await action.guild.members.fetch(user.id);
     },
     async randomuser(action, value) {
         let user = action.options.getUser(value);
@@ -33,7 +32,7 @@ module.exports = {
     },
     async randommember(action, value) {
         const user = await this.randomuser(action, value);
-        return await this.getmember(user);
+        return await this.getmember(action, user);
     },
     defaultuser(action, value) {
         let user = action.options.getUser(value);
@@ -50,17 +49,19 @@ module.exports = {
         return this.defaultuser(action, value);
     },
     async pickmember(action, value) {
-        if (global.access.level(action.guild, action.user) >= this.config.level_random) return await this.randommemeber(action, value);
+        if (global.access.level(action.guild, action.user) >= this.config.level_random) return await this.randommember(action, value);
         return await this.defaultmember(action, value);
+    },
+
+    // Messages
+    async react(message, emojiid) {
+        const emoji = message.guild ? message.guild.emojis.cache.get(emojiid) : null;
+        if (emoji) await message.react(emoji);
     },
 
     // Command helpers
     subcommands(config) {
-        let result = '';
-        for (const value of config.chat.options) {
-            result += value.name;
-        }
-        return result;
+        return config.chat.options.map(value => value.name).join(', ');
     },
 
     embedfields(embed, list, page = 0) {

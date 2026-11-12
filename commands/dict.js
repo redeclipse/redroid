@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType, ButtonStyle, ComponentType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -7,63 +9,60 @@ module.exports = {
                 {
                     name: 'search',
                     description: 'Search for entries in dictionaries.',
-                    type: 1,
+                    type: ApplicationCommandOptionType.Subcommand,
                     options: [
                         {
-                            type: 3,
+                            type: ApplicationCommandOptionType.String,
                             name: 'dictionary',
                             description: 'Select dictionary.',
                             required: true,
                             choices: global.dict.choices()
                         },
                         {
-                            type: 3,
+                            type: ApplicationCommandOptionType.String,
                             name: 'string',
                             description: 'Select search string.',
-                            required: true,
-                            choices: null
+                            required: true
                         }
                     ]
                 },
                 {
                     name: 'add',
                     description: 'Add entries to dictionaries.',
-                    type: 1,
+                    type: ApplicationCommandOptionType.Subcommand,
                     options: [
                         {
-                            type: 3,
+                            type: ApplicationCommandOptionType.String,
                             name: 'dictionary',
                             description: 'Select dictionary.',
                             required: true,
                             choices: global.dict.choices()
                         },
                         {
-                            type: 3,
+                            type: ApplicationCommandOptionType.String,
                             name: 'string',
                             description: 'String to add.',
-                            required: true,
-                            choices: null
+                            required: true
                         }
                     ]
                 },
                 {
                     name: 'remove',
                     description: 'Remove entries from dictionaries.',
-                    type: 1,
+                    type: ApplicationCommandOptionType.Subcommand,
                     options: [
                         {
-                            type: 3,
+                            type: ApplicationCommandOptionType.String,
                             name: 'dictionary',
                             description: 'Select dictionary.',
                             required: true,
                             choices: global.dict.choices()
                         },
                         {
-                            type: 3,
+                            type: ApplicationCommandOptionType.String,
                             name: 'string',
                             description: 'Select search string.',
-                            required: true,
-                            choices: null
+                            required: true
                         }
                     ]
                 },
@@ -96,7 +95,7 @@ module.exports = {
                     const result = global.tools.embedfields(embed, list);
                     if (result.more) embed.footer.text += `Results truncated, showing ${result.amount} of ${result.count} match(es).`;
                     else embed.footer.text += `There are a total of ${result.count} match(es).`;
-                    action.reply({
+                    await action.reply({
                         embeds: [embed]
                     });
                 }
@@ -106,7 +105,7 @@ module.exports = {
             case 'add': {
                 if (this.config.level_add > level) throw `Access level '${this.config.level_add}' is required.`;
                 const word = this.getdict(action), str = action.options.getString('string'), ret = global.dict.add(word, str);
-                action.reply({
+                await action.reply({
                     embeds: [{
                         color: 0x8888ff,
                         title: `📕 Dictionary: ${word}`,
@@ -131,33 +130,33 @@ module.exports = {
                 if (result.count > 1 && level < this.config.level_mass) embed.footer.text += ` Level ${this.config.level_mass} required to remove more than one entry.`;
 
                 const component = {
-                    type: 1,
+                    type: ComponentType.ActionRow,
                     components: [
                         {
-                            type: 2,
+                            type: ComponentType.Button,
                             label: 'OK',
-                            style: 3,
+                            style: ButtonStyle.Success,
                             custom_id: `dict ${action.id} ok`,
                             disabled: result.count > 1 && level < this.config.level_mass
                         },
                         {
-                            type: 2,
+                            type: ComponentType.Button,
                             label: 'Cancel',
-                            style: 4,
+                            style: ButtonStyle.Danger,
                             custom_id: `dict ${action.id} cancel`,
                             disabled: false
                         },
                         {
-                            type: 2,
+                            type: ComponentType.Button,
                             label: '⏪',
-                            style: 1,
+                            style: ButtonStyle.Primary,
                             custom_id: `dict ${action.id} prev`,
                             disabled: result.page.num > 0 ? false : true
                         },
                         {
-                            type: 2,
+                            type: ComponentType.Button,
                             label: '⏩',
-                            style: 1,
+                            style: ButtonStyle.Primary,
                             custom_id: `dict ${action.id} next`,
                             disabled: result.page.num > 0 ? false : true
                         },
@@ -175,7 +174,7 @@ module.exports = {
                     result: result,
                     list: list
                 };
-                action.reply({ embeds: [ embed ], components: [ component ] });
+                await action.reply({ embeds: [ embed ], components: [ component ] });
                 break;
             }
             default: {
@@ -199,33 +198,33 @@ module.exports = {
                         footer: { text: '' }
                     }],
                     components: [{
-                        type: 1,
+                        type: ComponentType.ActionRow,
                         components: [
                             {
-                                type: 2,
+                                type: ComponentType.Button,
                                 label: 'OK',
-                                style: 3,
+                                style: ButtonStyle.Success,
                                 custom_id: `dict ${id} ok`,
                                 disabled: button.result.count > 1 && level < this.config.level_mass
                             },
                             {
-                                type: 2,
+                                type: ComponentType.Button,
                                 label: 'Cancel',
-                                style: 4,
+                                style: ButtonStyle.Danger,
                                 custom_id: `dict ${id} cancel`,
                                 disabled: false
                             },
                             {
-                                type: 2,
+                                type: ComponentType.Button,
                                 label: '⏪',
-                                style: 1,
+                                style: ButtonStyle.Primary,
                                 custom_id: `dict ${id} prev`,
                                 disabled: button.page.num > 0 ? false : true
                             },
                             {
-                                type: 2,
+                                type: ComponentType.Button,
                                 label: '⏩',
-                                style: 1,
+                                style: ButtonStyle.Primary,
                                 custom_id: `dict ${id} next`,
                                 disabled: button.page.num > 0 ? false : true
                             },
@@ -274,7 +273,7 @@ module.exports = {
                 else reply.embeds[0].footer.text += `There are a total of ${result.count} match(es).`;
                 if (result.count > 1 && level < this.config.level_mass) reply.embeds[0].footer.text += ` Level ${this.config.level_mass} required to remove more than one entry.`;
 
-                action.update(reply);
+                await action.update(reply);
                 break;
             }
             default: throw `Invalid button interaction '${button.action}'.'`;

@@ -4,7 +4,9 @@ module.exports = {
         return true;
     },
     level(guild, user) {
+        if (!guild) return 0;
         const member = guild.members.resolve(user);
+        if (!member) return 0;
         switch (guild.id) {
             case '224638962050793474': {
                 if (member.id === '879328623297957949') return -1;

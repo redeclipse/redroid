@@ -1,3 +1,5 @@
+const { ApplicationCommandOptionType } = require('discord.js');
+
 module.exports = {
     config: {
         chat: {
@@ -5,18 +7,16 @@ module.exports = {
             description: 'Search for quotable moments.',
             options: [
                 {
-                    type: 3,
+                    type: ApplicationCommandOptionType.String,
                     name: 'target',
                     description: 'Select target.',
-                    required: false,
-                    choices: null
+                    required: false
                 },
                 {
-                    type: 3,
+                    type: ApplicationCommandOptionType.String,
                     name: 'search',
                     description: 'Select search terms.',
-                    required: false,
-                    choices: null
+                    required: false
                 }
             ]
         },
@@ -53,6 +53,6 @@ module.exports = {
         embed.description += '```\n';
         embed.description += '<' + result.name + '> ' + result.value;
         embed.description += '```';
-        action.reply({ embeds: [ embed ] });
+        await action.reply({ embeds: [ embed ] });
     },
 };

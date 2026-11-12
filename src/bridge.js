@@ -281,7 +281,7 @@ module.exports = {
             await message.reply({ content: `That server ${why}, so this didn't reach it.`, allowedMentions: { parse: [] } });
             return;
         }
-        let text = message.cleanContent.trim(), action = false;
+        let text = message.cleanContent.replace(/<a?(:\w+:)\d+>/g, '$1').trim(), action = false; // custom emoji by name
         const italic = text.match(/^\*([^*][\s\S]*)\*$/) || text.match(/^_([^_][\s\S]*)_$/);
         if (italic) {
             text = italic[1].trim();

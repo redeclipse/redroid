@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType, ButtonStyle, ComponentType } = require('discord.js');
+const { ApplicationCommandOptionType, ButtonStyle, ComponentType, escapeMarkdown } = require('discord.js');
 
 module.exports = {
     config: {
@@ -96,7 +96,7 @@ module.exports = {
                     const embed = {
                         color: 0x8888ff,
                         title: `📕 Dictionary: ${word}`,
-                        description: `Searching for: **${str}**`,
+                        description: `Searching for: **${escapeMarkdown(str)}**`,
                         fields: [],
                         footer: { text: '' }
                     };
@@ -107,7 +107,7 @@ module.exports = {
                         embeds: [embed]
                     });
                 }
-                else { throw `There are no dictionary matches in '${word}' for '${str}'.`; }
+                else { throw `There are no dictionary matches in '${word}' for '${escapeMarkdown(str)}'.`; }
                 break;
             }
             case 'add': {

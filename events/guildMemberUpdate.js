@@ -1,4 +1,4 @@
-const { Events } = require('discord.js');
+const { Events, escapeMarkdown } = require('discord.js');
 
 module.exports = {
     name: Events.GuildMemberUpdate,
@@ -11,7 +11,7 @@ module.exports = {
             global.post.notice({
                 color: 0xffff88,
                 title: '✉ Nickname Update',
-                text: `<@${member.id}> (${oldmember.user.tag}) renamed from **${oldnick}** to **${newnick}**.`
+                text: `<@${member.id}> (${escapeMarkdown(oldmember.user.tag)}) renamed from **${escapeMarkdown(oldnick)}** to **${escapeMarkdown(newnick)}**.`
             });
         }
         /*

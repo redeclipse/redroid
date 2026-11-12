@@ -1,4 +1,4 @@
-const { AuditLogEvent, Events } = require('discord.js');
+const { AuditLogEvent, Events, escapeMarkdown } = require('discord.js');
 
 module.exports = {
     name: Events.GuildBanRemove,
@@ -6,7 +6,7 @@ module.exports = {
     async execute(bot, ban) {
         global.log.audit(`<@${ban.user.id}> (${ban.user.tag}) was unbanned.`);
         if (ban.user.bot || bot.online !== true || !bot.config.channels.general) return;
-        let text = `<@${ban.user.id}> (${ban.user.tag}) was unbanned`;
+        let text = `<@${ban.user.id}> (${escapeMarkdown(ban.user.tag)}) was unbanned`;
 
         const audit = await ban.guild.fetchAuditLogs({
             limit: 1,

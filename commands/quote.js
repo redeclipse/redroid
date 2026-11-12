@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType } = require('discord.js');
+const { ApplicationCommandOptionType, escapeMarkdown } = require('discord.js');
 
 module.exports = {
     config: {
@@ -39,8 +39,8 @@ module.exports = {
         const str = action.options.getString('search'), result = global.quote.query(target, str, global.access.level(action.guild, action.user));
         if (!result) {
             let msg = 'There are no quotes';
-            if (target) msg += ` by '${target}'`;
-            if (str) msg += ` matching '${str}'`;
+            if (target) msg += ` by '${escapeMarkdown(target)}'`;
+            if (str) msg += ` matching '${escapeMarkdown(str)}'`;
             msg += '.';
             throw msg;
         }

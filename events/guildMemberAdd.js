@@ -1,4 +1,4 @@
-const { Events } = require('discord.js');
+const { Events, escapeMarkdown } = require('discord.js');
 
 module.exports = {
     name: Events.GuildMemberAdd,
@@ -10,7 +10,7 @@ module.exports = {
         global.post.notice({
             color: 0x88ff88,
             title: '👋 Join',
-            text: `<@${member.id}> (${member.user.tag}) has joined the server (#${members}).`,
+            text: `<@${member.id}> (${escapeMarkdown(member.user.tag)}) has joined the server (#${members}).`,
             thumbnail: member.user.displayAvatarURL()
         });
     },

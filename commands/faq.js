@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType } = require('discord.js');
+const { ApplicationCommandOptionType, escapeMarkdown } = require('discord.js');
 
 module.exports = {
     config: {
@@ -26,8 +26,8 @@ module.exports = {
         const target = action.options.getString('target'), str = action.options.getString('search'), data = global.faq.query(target, str, global.access.level(action.guild, action.user));
         if (!data || !data.value || !data.value.length) {
             let msg = 'There are no FAQs';
-            if (target) msg += ` for '${target}'`;
-            if (str) msg += ` matching '${str}'`;
+            if (target) msg += ` for '${escapeMarkdown(target)}'`;
+            if (str) msg += ` matching '${escapeMarkdown(str)}'`;
             msg += '.';
             throw msg;
         }
@@ -35,7 +35,7 @@ module.exports = {
         const embed = {
             color: 0x8888ff,
             title: `⁉ FAQ: ${data.name}`,
-            description: str ? `Searching for: ${str}` : 'Showing all entries',
+            description: str ? `Searching for: ${escapeMarkdown(str)}` : 'Showing all entries',
             fields: [],
             footer: { text: '' }
         };

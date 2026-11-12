@@ -1,6 +1,6 @@
 const crypto = require('crypto');
 const fs = require('fs');
-const { ChannelType, Events, escapeMarkdown } = require('discord.js');
+const { ChannelType, Events, RESTJSONErrorCodes, escapeMarkdown } = require('discord.js');
 
 // Bridges each game server's chat with its own thread in a forum channel, through the master's relay:
 // the server's Event feed comes out as posts, and replies in the thread go back in with POST /say
@@ -180,7 +180,19 @@ module.exports = {
     },
     // Posts for one server go out in the order its events came
     queue(server, fun) {
-        server.chain = server.chain.then(fun).catch(err => global.log.error(`Bridge: ${server.key}: ${err.stack || err}`));
+        // a thread a moderator deleted is made again, and the post tried once more there
+        const retry = err => {
+            if (!err || err.code !== RESTJSONErrorCodes.UnknownChannel) throw err;
+            this.forget(server);
+            return fun();
+        };
+        server.chain = server.chain.then(fun).catch(retry).catch(err => global.log.error(`Bridge: ${server.key}: ${err.stack || err}`));
+    },
+    forget(server) {
+        server.thread = null;
+        if (!this.data.threads[server.key]) return;
+        delete this.data.threads[server.key];
+        this.save();
     },
 
     // Game markup, such as colours and icons, has no meaning on Discord

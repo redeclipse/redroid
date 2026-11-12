@@ -93,10 +93,16 @@ module.exports = {
             return;
         }
         this.forum = forum;
-        const hooks = await forum.fetchWebhooks();
-        this.hook = hooks.find(h => h.owner && h.owner.id === this.bot.user.id && h.token) ||
-            await forum.createWebhook({ name: this.config.webhook, reason: 'Posts game chat under each player\'s name' });
+        await this.webhook();
         this.openlive();
+    },
+    // The bot's own webhook on the forum, made if there is none, as when a moderator deleted it
+    async webhook() {
+        this.hook = null;
+        const hooks = await this.forum.fetchWebhooks();
+        this.hook = hooks.find(h => h.owner && h.owner.id === this.bot.user.id && h.token) ||
+            await this.forum.createWebhook({ name: this.config.webhook, reason: 'Posts game chat under each player\'s name' });
+        return this.hook;
     },
 
     // The master's live server list says which servers exist and whether they take part
@@ -252,6 +258,11 @@ module.exports = {
                     this.forget(item.server);
                     await this.deliver(item).catch(e => global.log.error(`Bridge: ${item.server.key}: ${e.stack || e}`));
                 }
+                // and so is a webhook a moderator deleted, rather than every chat post failing until a restart
+                else if (err && err.code === RESTJSONErrorCodes.UnknownWebhook && item.kind === 'chat') {
+                    global.log.warn('Bridge: the webhook for game chat was deleted, making another.');
+                    await this.webhook().then(() => this.deliver(item)).catch(e => global.log.error(`Bridge: ${item.server.key}: ${e.stack || e}`));
+                }
                 else {
                     global.log.error(`Bridge: ${item.server ? item.server.key : 'reply'}: ${err.stack || err}`);
                 }
@@ -307,6 +318,7 @@ module.exports = {
         }
         // no link previews, so a link from the game is only text
         if (item.kind === 'chat') {
+            if (!this.hook) await this.webhook();
             const sent = await this.hook.send({ threadId: thread.id, username: item.username, content: item.content, allowedMentions: { parse: [] }, flags: MessageFlags.SuppressEmbeds });
             this.speakers.set(sent.id, item.name);
             if (this.speakers.size > this.config.speakers) this.speakers.delete(this.speakers.keys().next().value);

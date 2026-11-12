@@ -159,6 +159,7 @@ module.exports = {
         if (this.stopped) return;
         const ws = new WebSocket(this.relayurl(server, '/events').replace(/^http/, 'ws'));
         server.feed = ws;
+        server.count = undefined; // joins and leaves may have been missed while it was closed
         ws.addEventListener('message', event => {
             let msg;
             try {
@@ -279,8 +280,9 @@ module.exports = {
         delete this.data.threads[server.key];
         this.save();
     },
-    // How many are on a server, from what the master's list says it's playing
+    // How many are on a server: what its last join or leave said, or else the master's list, which lags a little
     players(server) {
+        if (typeof server.count === 'number') return server.count;
         const status = server.info && server.info.status;
         return status && Array.isArray(status.players) ? status.players.length : 0;
     },
@@ -341,6 +343,7 @@ module.exports = {
             }
             case 'join':
             case 'leave': {
+                if (typeof msg.players === 'number') server.count = msg.players; // bots' too, as it counts the people
                 if (client.bot) return;
                 const reason = msg.reason ? ` (${escapeMarkdown(msg.reason)})` : '';
                 // how many are on after it, from servers new enough to say

@@ -470,7 +470,9 @@ module.exports = {
                 const reason = msg.reason ? ` (${this.escape(this.plain(msg.reason))})` : '';
                 // how many are on after it, from servers new enough to say
                 const count = typeof msg.players === 'number' ? ` (${msg.players} ${msg.players === 1 ? 'player' : 'players'})` : '';
-                this.post({ server, kind: 'line', create: true, content: `**${name}** ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}` });
+                // a player signed in to an account shows it, so someone in game can't pass for a player who has one
+                const handle = client.handle ? ` (${this.escape(this.plain(client.handle))})` : '';
+                this.post({ server, kind: 'line', create: true, content: `**${name}**${handle} ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}` });
                 return;
             }
             case 'map': {
@@ -482,11 +484,10 @@ module.exports = {
                 return;
         }
     },
-    // A player signed in to an account shows it, so someone in game can't pass for a player who has one
+    // A chat post's name; someone sending from outside the game shows where from, and handles are on joins and leaves
     username(client) {
         const name = this.plain(client.name) || 'someone';
-        let user = client.handle ? `${name} (${client.handle})` : `${name} (in game)`;
-        if (client.web) user = `${name} [${client.via || 'web'}]`;
+        let user = client.web ? `${name} [${client.via || 'web'}]` : name;
         // Discord refuses webhook names containing these, or that are these
         user = user.replace(/discord/gi, 'D1scord').replace(/clyde/gi, 'C1yde').slice(0, 80);
         return /^(everyone|here)$/i.test(user) ? `${user} (in game)` : user;

@@ -1,4 +1,5 @@
 @ECHO OFF
+cd /d "%~dp0" || exit /b 1
 REM Rotate pm2 logs (once per machine): 10MB files, keep 10, compressed
 call pm2 describe pm2-logrotate >NUL 2>&1
 IF ERRORLEVEL 1 (

@@ -343,7 +343,9 @@ module.exports = {
             case 'leave': {
                 if (client.bot) return;
                 const reason = msg.reason ? ` (${escapeMarkdown(msg.reason)})` : '';
-                this.post({ server, kind: 'line', create: true, content: `**${name}** ${msg.event === 'join' ? 'joined' : 'left'}${reason}` });
+                // how many are on after it, from servers new enough to say
+                const count = typeof msg.players === 'number' ? ` (${msg.players} ${msg.players === 1 ? 'player' : 'players'})` : '';
+                this.post({ server, kind: 'line', create: true, content: `**${name}** ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}` });
                 return;
             }
             case 'map': {

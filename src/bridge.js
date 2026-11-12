@@ -26,7 +26,8 @@ module.exports = {
         userbacklog: 5, // one Discord user's messages waiting for one game server before more are refused
         renames: 2, // renames of one thread Discord allows every renamewindow
         renamewindow: 600000,
-        pause: 600000 // ms a thread that refused the bot is left alone, as each refusal counts towards Discord's ban
+        pause: 600000, // ms a thread that refused the bot is left alone, as each refusal counts towards Discord's ban
+        heldcheck: 500 // ms between looks at the queue while every post in it waits for a held thread, so new ones for other threads go on
     },
     bot: null,
     forum: null,
@@ -223,7 +224,8 @@ module.exports = {
         while (this.outbox.length && !this.stopped) {
             const item = this.take();
             if (!item) {
-                await this.wait(Math.max(50, Math.min(...this.held.values()) - Date.now()));
+                // a short wait, not until the hold ends, as posts for other threads may come meanwhile
+                await this.wait(Math.max(50, Math.min(this.config.heldcheck, Math.min(...this.held.values()) - Date.now())));
                 continue;
             }
             try {

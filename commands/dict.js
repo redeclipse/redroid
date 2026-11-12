@@ -83,7 +83,7 @@ module.exports = {
         const func = action.options.getSubcommand(), level = global.access.level(action.guild, action.user);
         switch (func) {
             case 'search': {
-                const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str);
+                const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str, level);
                 if (list.length) {
                     const embed = {
                         color: 0x8888ff,
@@ -116,7 +116,7 @@ module.exports = {
             }
             case 'remove': {
                 if (this.config.level_remove > level) throw `Access level '${this.config.level_remove}' is required.`;
-                const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str);
+                const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str, level);
                 const embed = {
                     color: 0x88ffff,
                     title: `📕 Dictionary: ${word}`,

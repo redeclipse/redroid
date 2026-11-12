@@ -42,15 +42,15 @@ module.exports = {
             return false;
         }
     },
-    findtarg(target) {
+    findtarg(target, level = 0) {
         if (!this.faqs[target]) {
             const keys = Object.keys(this.faqs);
             if (target.slice(0, 1) === '/') {
-                const regex = global.tools.strtoregex(target);
+                const regex = global.tools.strtoregex(target, level);
                 const values = keys.filter(value => value.match(regex));
                 if (values.length > 0) return values[0];
             }
-            const searches = [ '^' + target + '$', '^' + target, target ];
+            const escaped = global.tools.escaperegex(target), searches = [ '^' + escaped + '$', '^' + escaped, escaped ];
             for (let i = 0; i < 2; i++) {
                 for (const search of searches) {
                     const regex = i != 0 ? new RegExp(search, 'i') : new RegExp(search);
@@ -61,10 +61,10 @@ module.exports = {
         }
         return target;
     },
-    search(target, str) {
-        const regex = global.tools.strtoregex(str), matches = {};
+    search(target, str, level = 0) {
+        const regex = global.tools.strtoregex(str, level), matches = {};
         if (target) {
-            const targ = this.findtarg(target);
+            const targ = this.findtarg(target, level);
             if (targ && this.faqs[targ]) {
                 const values = this.faqs[targ].filter(value => value.match(regex));
                 if (values && values.length > 0) matches[targ] = values;
@@ -83,10 +83,10 @@ module.exports = {
         if (!this.faqs[target]) return null;
         return this.faqs[target];
     },
-    query(target, str) {
+    query(target, str, level = 0) {
         let result = null;
         if (str) {
-            const values = this.search(target, str), keys = Object.keys(values);
+            const values = this.search(target, str, level), keys = Object.keys(values);
             if (keys.length > 0) {
                 const numt = global.tools.rand(0, keys.length);
                 if (values[keys[numt]].length > 0) {
@@ -95,7 +95,7 @@ module.exports = {
             }
         }
         else if (target) {
-            const targ = this.findtarg(target);
+            const targ = this.findtarg(target, level);
             if (targ && this.faqs[targ] && this.faqs[targ].length > 0) {
                 result = { name: targ, value: this.faqs[targ] };
             }

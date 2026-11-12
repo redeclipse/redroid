@@ -1,7 +1,9 @@
 module.exports = {
     name: 'tools',
     config: {
-        level_random: 2
+        level_random: 2,
+        level_regex: 4,
+        regex_maxlen: 100
     },
     start() {
         return true;
@@ -13,9 +15,21 @@ module.exports = {
     },
 
     // Strings
-    strtoregex(str) {
-        const args = str.match(/^\/(.*?)\/([gimsuy]*)$/);
-        return args ? new RegExp(args[1], args[2]) : new RegExp(str, 'i');
+    escaperegex(str) {
+        return str.replace(/[\\^$.*+?()[\]{}|/-]/g, '\\$&');
+    },
+    // Plain text search, or /regex/flags for trusted users: user regexes can backtrack for minutes and block the bot
+    strtoregex(str, level = 0) {
+        const args = str.match(/^\/(.*)\/([imsu]*)$/);
+        if (!args) return new RegExp(this.escaperegex(str), 'i');
+        if (level < this.config.level_regex) throw `Access level '${this.config.level_regex}' is required to search with a regular expression.`;
+        if (args[1].length > this.config.regex_maxlen) throw `Regular expressions are limited to ${this.config.regex_maxlen} characters.`;
+        try {
+            return new RegExp(args[1], args[2]);
+        }
+        catch (e) {
+            throw e.message;
+        }
     },
 
     // Users / Members

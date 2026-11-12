@@ -36,7 +36,7 @@ module.exports = {
         const target = action.options.getString('target');
         if (target && target.slice(0, 2) === '<@') throw 'Searching by Discord ID is not yet supported. Try their IRC nickname?';
 
-        const str = action.options.getString('search'), result = global.quote.query(target, str);
+        const str = action.options.getString('search'), result = global.quote.query(target, str, global.access.level(action.guild, action.user));
         if (!result) {
             let msg = 'There are no quotes';
             if (target) msg += ` by '${target}'`;

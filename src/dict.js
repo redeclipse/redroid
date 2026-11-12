@@ -55,9 +55,9 @@ module.exports = {
         if (!word) throw `No dictionary name provided. Valid dictionaries are: ${this.print()}`;
         if (!this.words[word]) throw `Invalid dictionary '${word}'. Valid dictionaries are: ${this.print()}`;
     },
-    search(word, str) {
+    search(word, str, level = 0) {
         this.check(word);
-        const regex = global.tools.strtoregex(str);
+        const regex = global.tools.strtoregex(str, level);
         return this.words[word].filter(value => value.match(regex));
     },
     lookup(word, index = -1) {

@@ -13,6 +13,7 @@ module.exports = {
         webhook: 'Redroid Bridge',
         retry: 30000, // ms before reopening a closed socket
         offlinenote: 600000, // ms between notes that a thread's server is offline
+        authwait: 300000, // ms before signing in to a server again after it refused, as repeated failures get our address banned
         speakers: 500 // posts remembered for turning a reply into @name
     },
     bot: null,
@@ -22,7 +23,7 @@ module.exports = {
     timers: new Set(),
     stopped: false,
     data: { threads: {} },
-    servers: new Map(), // host:port -> { info, feed, token, thread, chain, retry, noted }
+    servers: new Map(), // host:port -> { info, feed, token, thread, chain, retry, noted, authfailed }
     speakers: new Map(), // Discord message id -> the player's name it was posted for
 
     start(bot) {
@@ -124,7 +125,7 @@ module.exports = {
         const key = this.key(info);
         let server = this.servers.get(key);
         if (!server) {
-            server = { key, info, feed: null, token: null, thread: null, chain: Promise.resolve(), retry: false, noted: 0 };
+            server = { key, info, feed: null, token: null, thread: null, chain: Promise.resolve(), retry: false, noted: 0, authfailed: 0 };
             this.servers.set(key, server);
         }
         const oldname = this.threadname(server.info);
@@ -311,8 +312,12 @@ module.exports = {
     async say(server, body) {
         for (let attempt = 0; attempt < 2; attempt++) {
             if (!server.token) {
+                if (Date.now() - server.authfailed < this.config.authwait) return 'couldn\'t sign in, trying again in a few minutes';
                 const err = await this.signin(server);
-                if (err) return err;
+                if (err) {
+                    server.authfailed = Date.now();
+                    return err;
+                }
             }
             const res = await this.post(server, '/say', body, server.token);
             if (res.status === 401) {

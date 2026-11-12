@@ -470,9 +470,18 @@ module.exports = {
                 const reason = msg.reason ? ` (${this.escape(this.plain(msg.reason))})` : '';
                 // how many are on after it, from servers new enough to say
                 const count = typeof msg.players === 'number' ? ` (${msg.players} ${msg.players === 1 ? 'player' : 'players'})` : '';
-                // a player signed in to an account shows it, so someone in game can't pass for a player who has one
-                const handle = client.handle ? ` (${this.escape(this.plain(client.handle))})` : '';
+                // a player signed in to an account shows it and their standing, so someone in game can't pass for a player who has one
+                const shown = [client.handle ? this.escape(this.plain(client.handle)) : '', this.standing(client)].filter(Boolean);
+                const handle = shown.length ? ` (${shown.join(', ')})` : '';
                 this.post({ server, kind: 'line', create: true, content: `**${name}**${handle} ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}` });
+                return;
+            }
+            case 'identify': {
+                // as the game's own line says it, with the account's standing when it is more than a player's
+                if (client.bot || !client.handle) return;
+                const standing = this.standing(client);
+                const priv = standing ? ` (${standing})` : '';
+                this.post({ server, kind: 'line', create: true, content: `**${name}** identified as ${this.escape(this.plain(client.handle))}${priv}` });
                 return;
             }
             case 'map': {
@@ -483,6 +492,15 @@ module.exports = {
             default:
                 return;
         }
+    },
+    // A player's standing as the game's own lines name it, such as "global moderator", when it is more than a player's
+    standing(client) {
+        if (client.bot) return '';
+        if (client.local && ['supporter', 'moderator', 'administrator'].includes(client.privilege)) return `local ${client.privilege}`;
+        return {
+            supporter: 'global supporter', moderator: 'global moderator', administrator: 'global administrator',
+            developer: 'project developer', creator: 'project founder'
+        }[client.privilege] || '';
     },
     // A chat post's name; someone sending from outside the game shows where from, and handles are on joins and leaves
     username(client) {

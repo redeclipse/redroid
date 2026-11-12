@@ -4,7 +4,7 @@ module.exports = {
     name: Events.GuildBanRemove,
     once: false,
     async execute(bot, ban) {
-        global.log.out(`<@${ban.user.id}> (${ban.user.tag}) was unbanned.`);
+        global.log.audit(`<@${ban.user.id}> (${ban.user.tag}) was unbanned.`);
         if (ban.user.bot || bot.online !== true || !bot.config.channels.general) return;
         const chan = bot.channels.cache.get(bot.config.channels.general);
         if (!chan) return;

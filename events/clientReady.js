@@ -10,7 +10,7 @@ module.exports = {
         process.title = title;
         process.stdout.write(`\u001B]0;${title}\u0007`);
 
-        global.log.out(`Ready: ${title}`);
+        global.log.audit(`Ready: ${title}`);
 
         client.user.setPresence({
             status: 'online',

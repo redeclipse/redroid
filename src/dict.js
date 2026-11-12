@@ -14,7 +14,7 @@ module.exports = {
                 global.log.out(`Dictionary '${word}' loaded ` + this.words[word].length + ' entries.');
             }
             catch (e) {
-                global.log.out(e);
+                global.log.error(e);
                 this.words[word] = [];
             }
         }
@@ -30,7 +30,7 @@ module.exports = {
             return true;
         }
         catch (e) {
-            global.log.out(`Saving dictionary failed: ./db/dict/${word}.json (${e})`);
+            global.log.error(`Saving dictionary failed: ./db/dict/${word}.json (${e})`);
             return false;
         }
     },

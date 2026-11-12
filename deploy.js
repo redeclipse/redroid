@@ -3,7 +3,7 @@ const { REST, Routes } = require('discord.js');
 const { clientId, guildId, token } = require('./config.json');
 
 // Commands read from the source modules when building their config (e.g. dict choices)
-global.log = { out: console.log, warn: console.warn, error: console.error, debug: console.log };
+global.log = { out: console.log, audit: console.log, warn: console.warn, error: console.error, debug: console.log };
 
 // Load source files without starting them
 const srcfiles = fs.readdirSync('./src').filter(file => file.endsWith('.js'));

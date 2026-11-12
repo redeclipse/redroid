@@ -11,7 +11,7 @@ module.exports = {
             global.log.out('Quotes loaded ' + Object.keys(this.quotes).length + ' entries.');
         }
         catch (e) {
-            global.log.out(e);
+            global.log.error(e);
         }
         return true;
     },
@@ -27,18 +27,18 @@ module.exports = {
                 global.log.out('Saving quotes backup: ./db/quote.bak');
             }
             catch (e) {
-                global.log.out(`Saving quotes backup failed: ./db/quote.bak (${e})`);
+                global.log.error(`Saving quotes backup failed: ./db/quote.bak (${e})`);
             }
         }
         catch (e) {
-            global.log.out(`Saving quotes backup not found: ./db/quote.json (${e})`);
+            global.log.warn(`Saving quotes backup not found: ./db/quote.json (${e})`);
         }
         try {
             fs.writeFileSync('./db/quote.json', JSON.stringify(this.quotes, null, 2));
             return true;
         }
         catch (e) {
-            global.log.out(`Saving quotes failed: ./db/quote.json (${e})`);
+            global.log.error(`Saving quotes failed: ./db/quote.json (${e})`);
             return false;
         }
     },

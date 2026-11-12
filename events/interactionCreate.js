@@ -16,15 +16,15 @@ module.exports = {
         else if (action.isChatInputCommand() || action.isContextMenuCommand()) {
             const command = bot.commands.get(action.commandName);
             if (!command) {
-                global.log.out(`${action.user.tag} in ${where} sent invalid command: ${action.commandName}`);
+                global.log.audit(`${action.user.tag} in ${where} sent invalid command: ${action.commandName}`);
                 throw 'Command not found.';
             }
             const data = action.isChatInputCommand() ? command.config.chat : action.isUserContextMenuCommand() ? command.config.user : command.config.mesg;
             if (command.config.level && command.config.level > global.access.level(action.guild, action.user)) {
-                global.log.out(`${action.user.tag} in ${where} failed command: ${data.name} (Level ${command.config.level} required)`);
+                global.log.audit(`${action.user.tag} in ${where} failed command: ${data.name} (Level ${command.config.level} required)`);
                 throw `Access level '${command.config.level}' is required.`;
             }
-            global.log.out(`${action.user.tag} in ${where} executed command '${data.name}'`);
+            global.log.audit(`${action.user.tag} in ${where} executed command '${data.name}'`);
             await command.execute(bot, action);
         }
         else if (action.isRepliable()) { throw 'Invalid interaction type.'; }

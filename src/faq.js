@@ -11,7 +11,7 @@ module.exports = {
             global.log.out('FAQs loaded ' + Object.keys(this.faqs).length + ' entries.');
         }
         catch (e) {
-            global.log.out(e);
+            global.log.error(e);
         }
         return true;
     },
@@ -27,18 +27,18 @@ module.exports = {
                 global.log.out('Saving FAQs backup: ./db/faq.bak');
             }
             catch (e) {
-                global.log.out(`Saving FAQs backup failed: ./db/faq.bak (${e})`);
+                global.log.error(`Saving FAQs backup failed: ./db/faq.bak (${e})`);
             }
         }
         catch (e) {
-            global.log.out(`Saving FAQs backup not found: ./db/faq.json (${e})`);
+            global.log.warn(`Saving FAQs backup not found: ./db/faq.json (${e})`);
         }
         try {
             fs.writeFileSync('./db/faq.json', JSON.stringify(this.faqs, null, 2));
             return true;
         }
         catch (e) {
-            global.log.out(`Saving FAQs failed: ./db/faq.json (${e})`);
+            global.log.error(`Saving FAQs failed: ./db/faq.json (${e})`);
             return false;
         }
     },

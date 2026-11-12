@@ -10,7 +10,12 @@ global.log = {
         console.error(timestamp() + ' ' + str, ...args);
         if (this.bot) this.bot.log('ERROR', str, ...args);
     },
+    // Console only
     out(str, ...args) {
+        console.log(timestamp() + ' ' + str, ...args);
+    },
+    // Console and the log channel, for events worth reviewing later
+    audit(str, ...args) {
         console.log(timestamp() + ' ' + str, ...args);
         if (this.bot) this.bot.log('LOG', str, ...args);
     },
@@ -18,7 +23,7 @@ global.log = {
         console.warn(timestamp() + ' ' + str, ...args);
         if (this.bot) this.bot.log('WARN', str, ...args);
     },
-    // Console only, never sent to the log channel
+    // Console only, for discord.js debug output
     debug(str, ...args) {
         console.log(timestamp() + ' ' + str, ...args);
     }
@@ -101,7 +106,7 @@ class Bot extends Client {
 
     async shutdown(restart = false) {
         if (this.shuttingdown) return;
-        global.log.out('Shutdown request received...');
+        global.log.audit(restart ? 'Restart request received...' : 'Shutdown request received...');
         this.shuttingdown = true;
         for (const source of global.sources) {
             const src = global[source];
@@ -124,6 +129,7 @@ class Bot extends Client {
             msg += JSON.stringify(args, null, 2);
             msg += '```';
         }
+        if (msg.length > 2000) msg = msg.slice(0, 1980) + '\n... (truncated)';
         // Report to the console only, logging here again could loop
         chan.send(msg).catch(err => console.error(timestamp() + ` Failed to send to log channel: ${err.message}`));
     }

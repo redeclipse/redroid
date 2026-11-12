@@ -263,8 +263,9 @@ module.exports = {
         const name = this.plain(client.name) || 'someone';
         let user = client.handle ? `${name} (${client.handle})` : `${name} (in game)`;
         if (client.web) user = `${name} [${client.via || 'web'}]`;
-        // Discord refuses webhook names containing these
-        return user.replace(/discord/gi, 'D1scord').replace(/clyde/gi, 'C1yde').slice(0, 80);
+        // Discord refuses webhook names containing these, or that are these
+        user = user.replace(/discord/gi, 'D1scord').replace(/clyde/gi, 'C1yde').slice(0, 80);
+        return /^(everyone|here)$/i.test(user) ? `${user} (in game)` : user;
     },
 
     // Replies in a server's thread go to that server

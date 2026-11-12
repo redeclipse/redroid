@@ -68,8 +68,9 @@ module.exports = {
     query(word, user, target, question = null) {
         this.check(word);
         let data = this.lookup(word);
-        data = data.replace(/@u/g, `<@${user.id}>`).replace(/@n/g, `<@${target.id}>`);
-        if (question) data = data.replace(/@q/g, question);
+        // Replacer functions, so '$' sequences in user text are not treated as patterns
+        data = data.replace(/@u/g, () => `<@${user.id}>`).replace(/@n/g, () => `<@${target.id}>`);
+        if (question) data = data.replace(/@q/g, () => question);
         return data;
     },
     add(word, str) {

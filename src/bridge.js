@@ -23,7 +23,8 @@ module.exports = {
     timers: new Set(),
     stopped: false,
     data: { threads: {} },
-    servers: new Map(), // host:port -> { info, feed, token, thread, chain, retry, noted, authfailed }
+    servers: new Map(), // host:port -> { info, feed, token, thread, chain, retry, authfailed }
+    noted: new Map(), // thread id -> when it was last told its server is offline
     speakers: new Map(), // Discord message id -> the player's name it was posted for
 
     start(bot) {
@@ -125,7 +126,7 @@ module.exports = {
         const key = this.key(info);
         let server = this.servers.get(key);
         if (!server) {
-            server = { key, info, feed: null, token: null, thread: null, chain: Promise.resolve(), retry: false, noted: 0, authfailed: 0 };
+            server = { key, info, feed: null, token: null, thread: null, chain: Promise.resolve(), retry: false, authfailed: 0 };
             this.servers.set(key, server);
         }
         const oldname = this.threadname(server.info);
@@ -277,8 +278,8 @@ module.exports = {
         if (!key) return;
         const server = this.servers.get(key);
         if (!server || !this.eligible(server.info)) {
-            if (server && Date.now() - server.noted < this.config.offlinenote) return;
-            if (server) server.noted = Date.now();
+            if (Date.now() - (this.noted.get(message.channel.id) || 0) < this.config.offlinenote) return;
+            this.noted.set(message.channel.id, Date.now());
             const why = server ? 'no longer takes chat from here' : 'is offline';
             await message.reply({ content: `That server ${why}, so this didn't reach it.`, allowedMentions: { parse: [] } });
             return;

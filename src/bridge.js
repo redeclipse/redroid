@@ -375,7 +375,8 @@ module.exports = {
             if (this.speakers.size > this.config.speakers) this.speakers.delete(this.speakers.keys().next().value);
         }
         else {
-            await thread.send({ content: item.content, allowedMentions: { parse: [] }, flags: MessageFlags.SuppressEmbeds });
+            // only a post naming who it mentions, such as a Ready queue pop's, pings anyone
+            await thread.send({ content: item.content, allowedMentions: item.mentions ? { users: item.mentions } : { parse: [] }, flags: MessageFlags.SuppressEmbeds });
         }
     },
     reply(message, content) {

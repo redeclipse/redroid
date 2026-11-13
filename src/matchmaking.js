@@ -53,6 +53,7 @@ module.exports = {
         }
         bot.once(Events.ClientReady, () => this.ready().catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         bot.on(Events.ThreadUpdate, (before, after) => this.threadupdate(after).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
+        bot.on(Events.MessageCreate, message => this.message(message).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         this.ticker = setInterval(() => this.tick().catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)), this.config.refresh);
         return true;
     },
@@ -93,7 +94,7 @@ module.exports = {
             this.thread = await this.forum.threads.create({
                 name: this.config.title,
                 autoArchiveDuration: 10080,
-                message: this.message()
+                message: this.opening()
             });
             this.data.thread = this.thread.id;
             this.data.list = this.thread.id; // a forum post's first message has the thread's id
@@ -108,6 +109,14 @@ module.exports = {
         }
         this.last = '';
         await this.render();
+    },
+    // The thread only holds the queue, so anything else said there goes, with a note that deletes itself saying where to talk,
+    // as even someone who may post there needn't know it isn't for talking
+    async message(message) {
+        if (!this.thread || message.channelId !== this.thread.id || message.author.id === this.bot.user.id || message.system) return;
+        await message.delete().catch(err => global.log.warn(`Matchmaking: couldn't delete a message in the thread: ${err.message}`));
+        const note = await this.thread.send({ content: `<@${message.author.id}> this thread only holds the queue, so your message was removed. Talk about a match in its server's thread.`, allowedMentions: { users: [message.author.id] } }).catch(() => null);
+        if (note) this.later(this.config.notewait, () => note.delete().catch(() => null));
     },
     // Discord archives a quiet thread, which would take it off the top of the forum
     async threadupdate(thread) {
@@ -207,13 +216,13 @@ module.exports = {
         await this.reminders();
     },
     // The server list and the queue, with the queue's buttons
-    message() {
+    opening() {
         const queue = this.queuemessage();
         return { embeds: [this.listembed(), ...queue.embeds], components: queue.components };
     },
     async render() {
         if (!this.thread || this.rendering) return;
-        const msg = this.message(), text = JSON.stringify([msg.embeds, msg.components]);
+        const msg = this.opening(), text = JSON.stringify([msg.embeds, msg.components]);
         if (text === this.last) return;
         this.rendering = true;
         try {

@@ -80,6 +80,7 @@
         "remind": 300000,
         "retry": 30000,
         "answerwait": 5000,
+        "notewait": 15000,
         "shown": 12,
         "browser": "https://www.redeclipse.net/servers",
         "colour": 13378082

@@ -18,6 +18,6 @@ module.exports = {
         if (banlog && banlog.targetId === ban.user.id && banlog.executorId) text += ` by <@${banlog.executorId}> (${banlog.reason ? escapeMarkdown(banlog.reason) : 'No reason'}).`;
         else text += '.';
 
-        global.post.notice({ color: 0x88ffff, title: '🚫 Banned', text, react: '839202957135446097' });
+        global.post.notice({ color: 0x88ffff, title: '🚫 Banned', text, react: bot.config.notices.react });
     },
 };

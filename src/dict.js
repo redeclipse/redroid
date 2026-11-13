@@ -4,11 +4,14 @@ module.exports = {
     name: 'dict',
     list: [ 'action', 'adverb', 'answer', 'assault', 'consult', 'disease', 'insert', 'killed', 'object', 'orifice', 'region', 'stfu', 'style', 'transmit', 'verb', 'weapon' ],
     words: {},
-    start() {
+    config: null, // config.dict: where the dictionaries are, and who may change them
+    start(bot) {
+        this.config = bot.config.dict;
+        if (!this.config || !this.config.dir) throw new Error('Dict: config.dict is needed.');
         for (const word of this.list) {
-            global.log.out(`Loading dictionary: ./db/dict/${word}.json`);
+            global.log.out(`Loading dictionary: ${this.config.dir}/${word}.json`);
             try {
-                const data = fs.readFileSync(`./db/dict/${word}.json`, 'utf-8');
+                const data = fs.readFileSync(`${this.config.dir}/${word}.json`, 'utf-8');
                 if (!data) throw `Error reading ${word} dictionary.`;
                 this.words[word] = JSON.parse(data);
                 global.log.out(`Dictionary '${word}' loaded ` + this.words[word].length + ' entries.');
@@ -24,8 +27,8 @@ module.exports = {
         // for (const word of this.list) this.save(word);
     },
     save(word) {
-        global.log.out(`Saving dictionary: ./db/dict/${word}.json`);
-        return global.tools.writejson(`./db/dict/${word}.json`, this.words[word]);
+        global.log.out(`Saving dictionary: ${this.config.dir}/${word}.json`);
+        return global.tools.writejson(`${this.config.dir}/${word}.json`, this.words[word]);
     },
     choices() {
         let result = []; // eslint-disable-line prefer-const

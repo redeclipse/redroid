@@ -17,8 +17,7 @@ module.exports = {
         user: {
             name: 'Penish',
             type: ApplicationCommandType.User
-        },
-        level: 1
+        }
     },
     magic: [12, 8, 20, 15, 8, 1, 6, 9, 15, -2, -21, -2, 5, 12, 19, 5, 8, -12, 6, -2, 14, 9, -8, 1, 6, -9, 15, 2, 21, 2, -8, 12, -19, 5, 8, -20],
     async execute(bot, action) {

@@ -3,10 +3,13 @@ const fs = require('fs');
 module.exports = {
     name: 'quote',
     quotes: {},
-    start() {
-        global.log.out('Loading quotes: ./db/quote.json');
+    file: null, // config.quote.file
+    start(bot) {
+        this.file = (bot.config.quote || {}).file;
+        if (!this.file) throw new Error('Quote: config.quote.file is needed.');
+        global.log.out(`Loading quotes: ${this.file}`);
         try {
-            this.quotes = JSON.parse(fs.readFileSync('./db/quote.json', 'utf-8'));
+            this.quotes = JSON.parse(fs.readFileSync(this.file, 'utf-8'));
             global.log.out('Quotes loaded ' + Object.keys(this.quotes).length + ' entries.');
         }
         catch (e) {
@@ -18,8 +21,8 @@ module.exports = {
         // this.save();
     },
     save() {
-        global.log.out('Saving quotes: ./db/quote.json');
-        return global.tools.writejson('./db/quote.json', this.quotes);
+        global.log.out(`Saving quotes: ${this.file}`);
+        return global.tools.writejson(this.file, this.quotes);
     },
     findtarg(target, level = 0) {
         if (!this.quotes[target]) {

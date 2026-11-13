@@ -17,8 +17,7 @@ module.exports = {
         user: {
             name: 'Infect',
             type: ApplicationCommandType.User
-        },
-        level: 1
+        }
     },
     async execute(bot, action) {
         const user = await global.tools.pickuser(action, 'user');

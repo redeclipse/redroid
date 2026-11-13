@@ -20,7 +20,6 @@ module.exports = {
                 }
             ]
         },
-        level: 1,
     },
     async execute(bot, action) {
         /*

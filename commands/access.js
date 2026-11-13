@@ -13,8 +13,7 @@ module.exports = {
                     required: false
                 }
             ]
-        },
-        level: 0
+        }
     },
     async execute(bot, action) {
         const user = global.tools.defaultuser(action, 'user');

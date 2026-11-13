@@ -68,18 +68,13 @@ module.exports = {
                 },
             ]
         },
-        level: 1,
-        level_add: 2,
-        level_remove: 2,
-        level_mass: 4
     },
     // Pending remove confirmations by interaction id; lost on restart
     buttons: {},
-    buttonttl: 15 * 60 * 1000,
     sweepbuttons() {
         const now = Date.now();
         for (const id of Object.keys(this.buttons)) {
-            if (now - this.buttons[id].created > this.buttonttl) delete this.buttons[id];
+            if (now - this.buttons[id].created > global.dict.config.buttonttl) delete this.buttons[id];
         }
     },
     getdict(action) {
@@ -111,7 +106,7 @@ module.exports = {
                 break;
             }
             case 'add': {
-                if (this.config.level_add > level) throw `Access level '${this.config.level_add}' is required.`;
+                if (global.dict.config.level_add > level) throw `Access level '${global.dict.config.level_add}' is required.`;
                 const word = this.getdict(action), str = action.options.getString('string'), ret = global.dict.add(word, str);
                 await action.reply({
                     embeds: [{
@@ -123,7 +118,7 @@ module.exports = {
                 break;
             }
             case 'remove': {
-                if (this.config.level_remove > level) throw `Access level '${this.config.level_remove}' is required.`;
+                if (global.dict.config.level_remove > level) throw `Access level '${global.dict.config.level_remove}' is required.`;
                 const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str, level);
                 const embed = {
                     color: 0x88ffff,
@@ -135,7 +130,7 @@ module.exports = {
                 const result = global.tools.embedfields(embed, list);
                 if (result.page.num > 0) embed.footer.text += `[Page ${result.page.cur + 1} of ${result.page.num + 1}] Showing ${result.amount} of ${result.count} match(es).`;
                 else embed.footer.text += `There are a total of ${result.count} match(es).`;
-                if (result.count > 1 && level < this.config.level_mass) embed.footer.text += ` Level ${this.config.level_mass} required to remove more than one entry.`;
+                if (result.count > 1 && level < global.dict.config.level_mass) embed.footer.text += ` Level ${global.dict.config.level_mass} required to remove more than one entry.`;
 
                 const component = {
                     type: ComponentType.ActionRow,
@@ -145,7 +140,7 @@ module.exports = {
                             label: 'OK',
                             style: ButtonStyle.Success,
                             custom_id: `dict ${action.id} ok`,
-                            disabled: result.count > 1 && level < this.config.level_mass
+                            disabled: result.count > 1 && level < global.dict.config.level_mass
                         },
                         {
                             type: ComponentType.Button,
@@ -216,7 +211,7 @@ module.exports = {
                                 label: 'OK',
                                 style: ButtonStyle.Success,
                                 custom_id: `dict ${id} ok`,
-                                disabled: button.result.count > 1 && level < this.config.level_mass
+                                disabled: button.result.count > 1 && level < global.dict.config.level_mass
                             },
                             {
                                 type: ComponentType.Button,
@@ -245,7 +240,7 @@ module.exports = {
 
                 switch (op) {
                     case 'ok': {
-                        if (button.result.count <= 1 || level >= this.config.level_mass) {
+                        if (button.result.count <= 1 || level >= global.dict.config.level_mass) {
                             try {
                                 const ret = global.dict.remove(button.word, button.list);
                                 reply.embeds[0].color = 0x88ff88;
@@ -282,7 +277,7 @@ module.exports = {
                 const result = global.tools.embedfields(reply.embeds[0], button.list, button.page.cur);
                 if (result.page.num > 0) reply.embeds[0].footer.text += `[Page ${result.page.cur + 1} of ${result.page.num + 1}] Showing ${result.amount} of ${result.count} match(es).`;
                 else reply.embeds[0].footer.text += `There are a total of ${result.count} match(es).`;
-                if (result.count > 1 && level < this.config.level_mass) reply.embeds[0].footer.text += ` Level ${this.config.level_mass} required to remove more than one entry.`;
+                if (result.count > 1 && level < global.dict.config.level_mass) reply.embeds[0].footer.text += ` Level ${global.dict.config.level_mass} required to remove more than one entry.`;
 
                 await action.update(reply);
                 break;

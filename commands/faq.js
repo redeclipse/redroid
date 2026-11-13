@@ -19,8 +19,7 @@ module.exports = {
                     required: false
                 }
             ]
-        },
-        level: 1
+        }
     },
     async execute(bot, action) {
         const target = action.options.getString('target'), str = action.options.getString('search'), data = global.faq.query(target, str, global.access.level(action.guild, action.user));

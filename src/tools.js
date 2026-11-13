@@ -2,12 +2,10 @@ const fs = require('fs');
 
 module.exports = {
     name: 'tools',
-    config: {
-        level_random: 2,
-        level_regex: 4,
-        regex_maxlen: 100
-    },
-    start() {
+    config: null, // config.tools
+    start(bot) {
+        this.config = bot.config.tools;
+        if (!this.config) throw new Error('Tools: config.tools is needed.');
         return true;
     },
 

@@ -13,8 +13,7 @@ module.exports = {
                     type: ApplicationCommandOptionType.Subcommand
                 }
             ]
-        },
-        level: 0
+        }
     },
     async execute(bot, action) {
         if (!global.matchmaking || !global.matchmaking.bot) throw 'Matchmaking isn\'t running.';

@@ -17,8 +17,7 @@ module.exports = {
                     type: ApplicationCommandOptionType.Subcommand
                 }
             ]
-        },
-        level: 5
+        }
     },
     async execute(bot, action) {
         const func = action.options.getSubcommand();

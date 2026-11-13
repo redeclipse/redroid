@@ -13,8 +13,7 @@ module.exports = {
                     required: false
                 }
             ]
-        },
-        level: 1
+        }
     },
     async execute(bot, action) {
         const user = await global.tools.pickuser(action, 'user');

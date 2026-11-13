@@ -3,11 +3,7 @@ const { ActivityType, Events } = require('discord.js');
 // The bot's status says how many are playing, from the master's server list
 module.exports = {
     name: 'presence',
-    config: {
-        master: 'https://play.redeclipse.net:28888',
-        interval: 60000, // ms between looks at the master's list
-        timeout: 10000 // ms before a look is given up
-    },
+    config: null, // config.presence
     bot: null,
     timer: null,
     etag: null,
@@ -15,7 +11,13 @@ module.exports = {
 
     start(bot) {
         this.bot = bot;
-        this.master = ((bot.config.auth || {}).master || this.config.master).replace(/\/+$/, '');
+        this.config = bot.config.presence;
+        const master = (bot.config.auth || {}).master;
+        if (!this.config || !master) {
+            global.log.out('Presence: config.presence and auth.master are needed, not starting.');
+            return false;
+        }
+        this.master = master.replace(/\/+$/, '');
         bot.once(Events.ClientReady, () => {
             this.poll();
             this.timer = setInterval(() => this.poll(), this.config.interval);

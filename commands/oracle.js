@@ -13,8 +13,7 @@ module.exports = {
                     required: true
                 }
             ]
-        },
-        level: 1
+        }
     },
     async execute(bot, action) {
         let question = action.options.getString('question');

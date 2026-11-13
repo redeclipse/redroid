@@ -109,9 +109,9 @@ class Bot extends Client {
         this.ratesummary = setInterval(() => {
             if (!this.ratelimits.count) return;
             const { count, routes } = this.ratelimits;
-            global.log.warn(`Hit ${count} rate ${count === 1 ? 'limit' : 'limits'} on ${routes.size} ${routes.size === 1 ? 'route' : 'routes'} in the last 10 minutes: ${[...routes].join(', ')}`);
+            global.log.warn(`Hit ${count} rate ${count === 1 ? 'limit' : 'limits'} on ${routes.size} ${routes.size === 1 ? 'route' : 'routes'} in the last ${Math.round(this.config.ratesummary / 60000)} minutes: ${[...routes].join(', ')}`);
             this.ratelimits = { count: 0, routes: new Set() };
-        }, 600000);
+        }, this.config.ratesummary);
         // Too many refused requests (401, 403, 429) in 10 minutes gets the bot's address banned by Discord for a while
         this.rest.on(RESTEvents.InvalidRequestWarning, data => {
             global.log.warn(`${data.count} refused requests to Discord in the last 10 minutes, at 10000 it bans the bot's address; ${Math.round(data.remainingTime / 1000)}s until the count resets.`);

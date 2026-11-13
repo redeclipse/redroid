@@ -3,16 +3,13 @@ const { RESTJSONErrorCodes } = require('discord.js');
 // The bot's own posts to its channels, log entries and notices, each channel taking them in turn under Discord's
 // 5 posts every 5 seconds: notices waiting together are merged and never lost, identical log entries waiting
 // together are counted, and log entries past the backlog are dropped, oldest first
+// What Discord allows, which no setting changes: characters in a post, and in an embed's description
+const DISCORD_POSTSIZE = 2000;
+const DISCORD_EMBEDSIZE = 4096;
+
 module.exports = {
     name: 'post',
-    config: {
-        burst: 5, // posts to one channel every window
-        window: 5000, // ms
-        backlog: 50, // log entries waiting for one channel before the oldest are dropped
-        postsize: 2000, // characters in a Discord post
-        embedsize: 4096, // characters in an embed's description
-        pause: 600000 // ms a channel that refused the bot is left alone
-    },
+    config: null, // config.post
     bot: null,
     stopped: false,
     lines: new Map(), // channel id -> { items, sent, pumping, paused, dropped }
@@ -20,6 +17,8 @@ module.exports = {
     // Not registered for shutdown, as the bot's shutdown lets the backlog out first with finish()
     start(bot) {
         this.bot = bot;
+        this.config = bot.config.post;
+        if (!this.config) throw new Error('Post: config.post is needed.');
         return false;
     },
 
@@ -105,7 +104,7 @@ module.exports = {
                 text = `*${line.dropped} log ${line.dropped === 1 ? 'entry was' : 'entries were'} dropped to keep up, see the console.*\n${text}`;
                 line.dropped = 0;
             }
-            if (text.length > this.config.postsize) text = text.slice(0, this.config.postsize - 20) + '\n... (truncated)';
+            if (text.length > DISCORD_POSTSIZE) text = text.slice(0, DISCORD_POSTSIZE - 20) + '\n... (truncated)';
             return { content: text };
         }
         const texts = [head.text];
@@ -113,7 +112,7 @@ module.exports = {
         while (line.items.length) {
             const o = line.items[0];
             if (o.kind !== 'notice' || o.title !== head.title || o.color !== head.color) break;
-            if (size + 1 + o.text.length > this.config.embedsize) break; // the rest go in the next post
+            if (size + 1 + o.text.length > DISCORD_EMBEDSIZE) break; // the rest go in the next post
             texts.push(o.text);
             size += 1 + o.text.length;
             line.items.shift();

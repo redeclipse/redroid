@@ -3,10 +3,13 @@ const fs = require('fs');
 module.exports = {
     name: 'faq',
     faqs: {},
-    start() {
-        global.log.out('Loading FAQs: ./db/faq.json');
+    file: null, // config.faq.file
+    start(bot) {
+        this.file = (bot.config.faq || {}).file;
+        if (!this.file) throw new Error('FAQ: config.faq.file is needed.');
+        global.log.out(`Loading FAQs: ${this.file}`);
         try {
-            this.faqs = JSON.parse(fs.readFileSync('./db/faq.json', 'utf-8'));
+            this.faqs = JSON.parse(fs.readFileSync(this.file, 'utf-8'));
             global.log.out('FAQs loaded ' + Object.keys(this.faqs).length + ' entries.');
         }
         catch (e) {
@@ -18,8 +21,8 @@ module.exports = {
         // this.save();
     },
     save() {
-        global.log.out('Saving FAQs: ./db/faq.json');
-        return global.tools.writejson('./db/faq.json', this.faqs);
+        global.log.out(`Saving FAQs: ${this.file}`);
+        return global.tools.writejson(this.file, this.faqs);
     },
     findtarg(target, level = 0) {
         if (!this.faqs[target]) {

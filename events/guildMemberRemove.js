@@ -12,7 +12,7 @@ module.exports = {
             title: '⛔ Leave',
             text: `<@${member.id}> (${escapeMarkdown(member.user.tag)}) has left the server (#${members}).`,
             thumbnail: member.user.displayAvatarURL(),
-            react: '839202957135446097'
+            react: bot.config.notices.react
         });
     },
 };

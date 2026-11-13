@@ -20,9 +20,15 @@ module.exports = {
                 throw 'Command not found.';
             }
             const data = action.isChatInputCommand() ? command.config.chat : action.isUserContextMenuCommand() ? command.config.user : command.config.mesg;
-            if (command.config.level && command.config.level > global.access.level(action.guild, action.user)) {
-                global.log.audit(`${action.user.tag} in ${where} failed command: ${data.name} (Level ${command.config.level} required)`);
-                throw `Access level '${command.config.level}' is required.`;
+            // config.levels, by the slash command's name; one with no level set runs for nobody rather than everybody
+            const need = (bot.config.levels || {})[command.config.chat.name];
+            if (typeof need !== 'number') {
+                global.log.error(`Command '${command.config.chat.name}' has no level in config.levels, refusing it.`);
+                throw 'This command isn\'t set up yet.';
+            }
+            if (need > global.access.level(action.guild, action.user)) {
+                global.log.audit(`${action.user.tag} in ${where} failed command: ${data.name} (Level ${need} required)`);
+                throw `Access level '${need}' is required.`;
             }
             global.log.audit(`${action.user.tag} in ${where} executed command '${data.name}'`);
             await command.execute(bot, action);

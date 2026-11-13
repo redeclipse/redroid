@@ -18,7 +18,6 @@ module.exports = {
             name: 'Assault',
             type: ApplicationCommandType.User
         },
-        level: 1,
     },
     async execute(bot, action) {
         const user = await global.tools.pickuser(action, 'user');

@@ -30,7 +30,8 @@ module.exports = {
     servers: new Map(), // host:port -> the master's listing
     queue: null, // the master's last queue event's queue, with its entries
     waiting: new Map(), // Discord ID -> the button waiting to hear the master's answer
-    last: '', // what the opening message last said, so it's only edited when that changes
+    lastlist: '',
+    lastqueue: '',
     lastping: 0,
     pinged: new Set(), // Thresholds already pinged for since the queue last emptied
 
@@ -82,29 +83,32 @@ module.exports = {
         await this.connect();
     },
 
-    // The thread, made again if a moderator deleted it; the server list and the queue are both in its opening message, which
-    // stays first in the thread and is what the forum shows of it, and a queue message of its own from before goes
+    // The thread and its two messages, made again if a moderator deleted any of them
     async ensure() {
         if (this.data.thread) this.thread = await this.forum.threads.fetch(this.data.thread).catch(() => null);
         if (!this.thread) {
             this.thread = await this.forum.threads.create({
                 name: this.config.title,
                 autoArchiveDuration: 10080,
-                message: this.opening()
+                message: { embeds: [this.listembed()] }
             });
             this.data.thread = this.thread.id;
             this.data.list = this.thread.id; // a forum post's first message has the thread's id
+            this.data.queue = null;
             this.save();
             await this.thread.pin().catch(err => global.log.warn(`Matchmaking: couldn't pin the thread: ${err.message}`));
         }
         if (this.thread.archived) await this.thread.setArchived(false);
-        if (this.data.queue && this.data.queue !== this.data.list) {
-            await this.thread.messages.delete(this.data.queue).catch(() => null);
-            this.data.queue = null;
+        let queuemsg = this.data.queue ? await this.thread.messages.fetch(this.data.queue).catch(() => null) : null;
+        if (!queuemsg) {
+            queuemsg = await this.thread.send(this.queuemessage());
+            this.data.queue = queuemsg.id;
             this.save();
         }
-        this.last = '';
-        await this.render();
+        this.lastlist = '';
+        this.lastqueue = '';
+        await this.tick();
+        await this.editqueue();
     },
     // The thread only holds the queue, so anything else said there goes, with a note that deletes itself saying where to talk,
     // as even someone who may post there needn't know it isn't for talking
@@ -205,35 +209,21 @@ module.exports = {
         }
     },
 
-    // Every refresh: the opening message, edited when it reads differently, and reminders for places about to run out
+    // Every refresh: the list, edited when it reads differently, and reminders for places about to run out
     async tick() {
         if (!this.thread) return;
-        await this.render();
-        await this.reminders();
-    },
-    // The server list and the queue, with the queue's buttons
-    opening() {
-        const queue = this.queuemessage();
-        return { embeds: [this.listembed(), ...queue.embeds], components: queue.components };
-    },
-    async render() {
-        if (!this.thread || this.rendering) return;
-        const msg = this.opening(), text = JSON.stringify([msg.embeds, msg.components]);
-        if (text === this.last) return;
-        this.rendering = true;
-        try {
+        const embed = this.listembed(), text = JSON.stringify(embed);
+        if (text !== this.lastlist) {
             const first = await this.thread.messages.fetch(this.data.list).catch(() => null);
             if (first) {
-                await first.edit(msg);
-                this.last = text;
+                await first.edit({ embeds: [embed], components: [] });
+                this.lastlist = text;
             }
             else {
                 await this.recreate();
             }
         }
-        finally {
-            this.rendering = false;
-        }
+        await this.reminders();
     },
     async recreate() {
         this.data.thread = this.data.list = this.data.queue = null;
@@ -339,8 +329,20 @@ module.exports = {
         this.queueediting = true;
         this.later(this.config.queueedit, () => {
             this.queueediting = false;
-            this.render().catch(err => global.log.error(`Matchmaking: ${err.stack || err}`));
+            this.editqueue().catch(err => global.log.error(`Matchmaking: ${err.stack || err}`));
         });
+    },
+    async editqueue() {
+        if (!this.thread || !this.data.queue) return;
+        const counts = this.counts() + this.channels().map(c => c.name).join();
+        if (counts === this.lastqueue) return;
+        const msg = await this.thread.messages.fetch(this.data.queue).catch(() => null);
+        if (!msg) {
+            await this.recreate();
+            return;
+        }
+        await msg.edit(this.queuemessage());
+        this.lastqueue = counts;
     },
 
     // @Matchmaking hears when one more would make a match, once for each Threshold until the queue empties, and those

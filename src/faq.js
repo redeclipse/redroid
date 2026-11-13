@@ -26,6 +26,15 @@ module.exports = {
     },
     findtarg(target, level = 0) {
         if (!this.faqs[target]) {
+            if (global.users && target.slice(0, 1) !== '/') {
+                const ukey = global.users.findkey(target, true);
+                if (ukey) {
+                    if (this.faqs[ukey]) return ukey;
+                    const ulower = ukey.toLowerCase();
+                    const hit = Object.keys(this.faqs).find(k => k.toLowerCase() === ulower);
+                    if (hit) return hit;
+                }
+            }
             const keys = Object.keys(this.faqs);
             if (target.slice(0, 1) === '/') {
                 const regex = global.tools.strtoregex(target, level);
@@ -38,6 +47,14 @@ module.exports = {
                     const regex = i != 0 ? new RegExp(search, 'i') : new RegExp(search);
                     const values = keys.filter(value => value.match(regex));
                     if (values.length > 0) return values[0];
+                    if (global.users) {
+                        for (const [ ukey, entry ] of Object.entries(global.users.users)) {
+                            const fkey = this.faqs[ukey] ? ukey : keys.find(k => k.toLowerCase() === ukey.toLowerCase());
+                            if (fkey && (ukey.match(regex) || entry.aliases.some(a => a.match(regex)))) {
+                                return fkey;
+                            }
+                        }
+                    }
                 }
             }
         }

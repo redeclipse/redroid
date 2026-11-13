@@ -26,6 +26,10 @@ module.exports = {
     },
     findtarg(target, level = 0) {
         if (!this.quotes[target]) {
+            if (global.users && target.slice(0, 1) !== '/') {
+                const ukey = global.users.findkey(target, true);
+                if (ukey && this.quotes[ukey]) return ukey;
+            }
             const keys = Object.keys(this.quotes);
             if (target.slice(0, 1) === '/') {
                 const regex = global.tools.strtoregex(target, level);
@@ -38,6 +42,13 @@ module.exports = {
                     const regex = i != 0 ? new RegExp(search, 'i') : new RegExp(search);
                     const values = keys.filter(value => value.match(regex));
                     if (values.length > 0) return values[0];
+                    if (global.users) {
+                        for (const [ ukey, entry ] of Object.entries(global.users.users)) {
+                            if (this.quotes[ukey] && (ukey.match(regex) || entry.aliases.some(a => a.match(regex)))) {
+                                return ukey;
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -94,11 +105,13 @@ module.exports = {
         return result;
     },
     add(target, str, type = 'msg') {
-        let targ = target;
-        const keys = Object.keys(this.quotes);
-        const regex = new RegExp(global.tools.escaperegex(target), 'i');
-        const values = keys.filter(value => value.match(regex));
-        if (values.length > 0) targ = values[0];
+        let targ = (global.users && global.users.findkey(target, true)) || target;
+        if (!this.quotes[targ]) {
+            const keys = Object.keys(this.quotes);
+            const regex = new RegExp('^' + global.tools.escaperegex(targ) + '$', 'i');
+            const values = keys.filter(value => value.match(regex));
+            if (values.length > 0) targ = values[0];
+        }
         if (!targ) return null;
         if (!this.quotes[targ]) this.quotes[targ] = [];
         this.quotes[targ].push({ body: str, type: type });

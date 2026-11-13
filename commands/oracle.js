@@ -32,7 +32,9 @@ module.exports = {
         if (global.tools.rand(0, 4) === 0) {
             const level = global.access.level(action.guild, action.user);
             const member = action.member || await global.tools.getmember(action, action.user);
-            let qot = member ? global.quote.query(member.displayName, null, level) : null;
+            const canonical = global.users.bymember(member || action.user);
+            let qot = canonical ? global.quote.query(canonical, null, level) : null;
+            if (!qot && member) qot = global.quote.query(member.displayName, null, level);
             if (!qot) qot = global.quote.query(action.user.username, null, level);
             if (!qot) qot = global.quote.query(null, null, level);
             if (qot && qot.value) {

@@ -22,10 +22,19 @@ module.exports = {
         }
     },
     async execute(bot, action) {
-        const target = action.options.getString('target'), str = action.options.getString('search'), data = global.faq.query(target, str, global.access.level(action.guild, action.user));
+        const rawtarget = action.options.getString('target'), str = action.options.getString('search');
+        const level = global.access.level(action.guild, action.user);
+        let target = rawtarget;
+        if (rawtarget && rawtarget.slice(0, 1) !== '/') {
+            const resolved = await global.users.resolve(action, rawtarget);
+            if (resolved && (global.faq.faqs[resolved.name] || Object.keys(global.faq.faqs).some(k => k.toLowerCase() === resolved.name.toLowerCase()))) {
+                target = resolved.name;
+            }
+        }
+        const data = global.faq.query(target, str, level);
         if (!data || !data.value || !data.value.length) {
             let msg = 'There are no FAQs';
-            if (target) msg += ` for '${escapeMarkdown(target)}'`;
+            if (rawtarget) msg += ` for '${escapeMarkdown(rawtarget)}'`;
             if (str) msg += ` matching '${escapeMarkdown(str)}'`;
             msg += '.';
             throw msg;

@@ -22,30 +22,29 @@ module.exports = {
         },
     },
     async execute(bot, action) {
-        let target = action.options.getString('target');
+        const rawtarget = action.options.getString('target');
         const level = global.access.level(action.guild, action.user);
-        if (target) {
-            const member = await global.tools.resolvemember(action, target);
-            if (member) {
-                const disp = global.quote.findtarg(member.displayName, level);
-                target = global.quote.quotes[disp] ? disp : member.user.username;
-            }
+        let target = rawtarget;
+        if (rawtarget && rawtarget.slice(0, 1) !== '/') {
+            const resolved = await global.users.resolve(action, rawtarget);
+            if (resolved) target = resolved.name;
         }
 
         const str = action.options.getString('search'), result = global.quote.query(target, str, level);
         if (!result) {
             let msg = 'There are no quotes';
-            if (target) msg += ` by '${escapeMarkdown(target)}'`;
+            if (rawtarget) msg += ` by '${escapeMarkdown(rawtarget)}'`;
             if (str) msg += ` matching '${escapeMarkdown(str)}'`;
             msg += '.';
             throw msg;
         }
 
         const count = global.stats.inc('quote'), mile = global.stats.milestone(count, 'quote to be announced');
+        const speaker = global.users.display(result.name, action.guild);
         const embed = {
             color: 0x8888ff,
             title: '💬 Quote',
-            description: `${target ? result.name : 'A random person'} once said:\n`
+            description: `${speaker} once said:\n`
         };
         if (mile) embed.footer = { text: mile };
         embed.description += '```\n';

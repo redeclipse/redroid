@@ -18,10 +18,10 @@ module.exports = {
     async execute(bot, action) {
         const raw = action.options.getString('target').trim();
         const count = global.stats.inc('fail'), mile = global.stats.milestone(count, 'failure evaluated');
+        const resolved = await global.users.resolve(action, raw);
         const lower = raw.toLowerCase();
-        const isbot = lower.includes('redroid') || raw.includes(bot.user.id);
-        const member = await global.tools.resolvemember(action, raw);
-        const display = member ? `<@${member.user.id}>` : escapeMarkdown(raw);
+        const isbot = lower.includes('redroid') || raw.includes(bot.user.id) || Boolean(resolved && resolved.id === bot.user.id);
+        const display = resolved ? resolved.display : escapeMarkdown(raw);
 
         let desc;
         if (isbot) {

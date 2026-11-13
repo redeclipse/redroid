@@ -83,31 +83,26 @@ module.exports = {
     },
     async resolvetarget(action, raw) {
         const minlevel = global.stats.config.level_tipjar;
-        let member = await global.tools.resolvemember(action, raw);
-        if (!member && action.guild) {
-            const lower = raw.toLowerCase();
-            member = action.guild.members.cache.find(
-                m => m.displayName.toLowerCase() === lower || m.user.username.toLowerCase() === lower
-            ) || null;
-        }
-        if (member) {
-            const key = global.stats.findtip(member.displayName) || global.stats.findtip(member.user.username);
-            const tlevel = global.access.level(action.guild, member.user);
+        const resolved = await global.users.resolve(action, raw);
+        const key = (resolved && global.stats.findtip(resolved.name)) || global.stats.findtip(raw);
+        if (resolved && (resolved.member || resolved.id)) {
+            const member = resolved.member || await global.tools.resolvemember(action, resolved.id);
+            const tlevel = member ? global.access.level(action.guild, member.user) : 0;
             if (!key && tlevel < minlevel) {
-                throw `User <@${member.user.id}> must have access level '${minlevel}' or higher.`;
+                throw `User <@${resolved.id}> must have access level '${minlevel}' or higher.`;
             }
+            const canonical = key || resolved.name;
             return {
-                key: key || member.user.username,
-                display: `<@${member.user.id}>`
+                key: canonical,
+                display: `<@${resolved.id}>`
             };
         }
-        const key = global.stats.findtip(raw);
         if (!key) {
             throw `User '${escapeMarkdown(raw)}' is not in the tipjar (must have access level '${minlevel}' or higher).`;
         }
         return {
             key: key,
-            display: escapeMarkdown(key)
+            display: global.users.display(key, action.guild)
         };
     },
     formatbalance(key, display, count) {
@@ -141,10 +136,10 @@ module.exports = {
                 if (level < minlevel) throw `Access level '${minlevel}' is required.`;
                 const targ = await this.resolvetarget(action, action.options.getString('target'));
                 const victimraw = action.options.getString('victim');
-                const victimmember = await global.tools.resolvemember(action, victimraw);
-                const victimposs = victimmember
-                    ? `<@${victimmember.user.id}>'s`
-                    : global.tools.plural(escapeMarkdown(victimraw));
+                const victimres = await global.users.resolve(action, victimraw);
+                const victimposs = victimres && victimres.id
+                    ? `<@${victimres.id}>'s`
+                    : global.tools.plural(escapeMarkdown(victimres ? victimres.name : victimraw));
                 const amount = action.options.getInteger('count') || 1;
                 const updated = global.stats.addtip(targ.key, amount);
                 let act;

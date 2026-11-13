@@ -49,6 +49,16 @@ module.exports = {
         for (const key of Object.keys(this.data.tipjar)) {
             if (key.toLowerCase() === lower) return key;
         }
+        if (global.users) {
+            const ukey = global.users.findkey(target, true);
+            if (ukey) {
+                if (Object.hasOwn(this.data.tipjar, ukey)) return ukey;
+                const ulower = ukey.toLowerCase();
+                for (const key of Object.keys(this.data.tipjar)) {
+                    if (key.toLowerCase() === ulower) return key;
+                }
+            }
+        }
         return null;
     },
     gettip(target) {
@@ -56,7 +66,7 @@ module.exports = {
         return key ? this.data.tipjar[key] : 0;
     },
     addtip(target, amount = 1) {
-        const key = this.findtip(target) || target;
+        const key = this.findtip(target) || (global.users && global.users.findkey(target, true)) || target;
         this.data.tipjar[key] = (this.data.tipjar[key] || 0) + amount;
         this.save();
         return { name: key, value: this.data.tipjar[key] };

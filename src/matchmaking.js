@@ -4,27 +4,20 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Events } = re
 // The Matchmaking thread: a pinned post in the bridge's forum whose first message lists the servers and whose second is the
 // master's Ready queue, which members join from its buttons; the master owns the queue, and this only shows it and passes on
 // what members ask of it, signed in with the bridge's account so it may queue them by their Discord ID
+// The current game's names, as the website's server browser has them; servers older than modesfrom just get their mode
+const names = {
+    modes: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Speedrun'],
+    mutators: ['Free for All', 'Coop', 'Instagib', 'Medieval', 'Kaboom', 'Duel', 'Survivor', 'Classic', 'Onslaught', 'Vampire', 'Resize', 'Hard', 'Arena', 'Dark'],
+    gsp: { 2: ['Gladiator', 'Old School'], 3: ['Quick', 'Defend', 'Protect'], 4: ['Quick', 'King'], 5: ['Hold', 'Basket', 'Assault'], 6: ['Lapped', 'Endurance', 'Gauntlet'] },
+    modesfrom: 278
+};
+// The Thresholds the master takes
+const thresholds = [2, 4, 6, 8];
+
 module.exports = {
     name: 'matchmaking',
-    config: {
-        file: './db/matchmaking.json',
-        title: 'Matchmaking',
-        role: '852282243795517451', // @Matchmaking, pinged when the queue is one short of a match
-        pinggap: 1800000, // ms between pings, so the role isn't called over and over by people coming and going
-        refresh: 30000, // ms between looks at the server list, edited only when it reads differently
-        queueedit: 2000, // ms a burst of queue changes waits, so it takes one edit
-        remind: 300000, // ms before a member's place runs out that they're asked if they want more time
-        retry: 30000, // ms before reopening the master's socket or signing in again
-        answerwait: 5000, // ms a button waits to hear the master took it
-        thresholds: [2, 4, 6, 8],
-        emptyshown: 3, // empty servers listed after the busy ones
-        colour: 0xcc2222,
-        // the current game's names, as the website's server browser has them; older servers just get their mode
-        modes: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Speedrun'],
-        mutators: ['Free for All', 'Coop', 'Instagib', 'Medieval', 'Kaboom', 'Duel', 'Survivor', 'Classic', 'Onslaught', 'Vampire', 'Resize', 'Hard', 'Arena', 'Dark'],
-        gsp: { 2: ['Gladiator', 'Old School'], 3: ['Quick', 'Defend', 'Protect'], 4: ['Quick', 'King'], 5: ['Hold', 'Basket', 'Assault'], 6: ['Lapped', 'Endurance', 'Gauntlet'] },
-        modesfrom: 278
-    },
+    config: null, // config.matchmaking, with the role from config.roles.matchmaking
+    thresholds,
     bot: null,
     forum: null,
     thread: null,
@@ -44,13 +37,14 @@ module.exports = {
     start(bot) {
         const auth = bot.config.auth || {};
         this.forumid = auth.relay || (bot.config.channels || {}).relay;
-        if (!auth.handle || !auth.privkey || !this.forumid) {
-            global.log.out('Matchmaking: auth.handle, auth.privkey and the bridge\'s forum channel are needed, not starting.');
+        this.config = bot.config.matchmaking;
+        if (!auth.handle || !auth.privkey || !this.forumid || !this.config) {
+            global.log.out('Matchmaking: auth.handle, auth.privkey, the bridge\'s forum channel and config.matchmaking are needed, not starting.');
             return false;
         }
+        this.config = Object.assign({}, this.config, { role: (bot.config.roles || {}).matchmaking });
         this.bot = bot;
         this.master = (auth.master || 'https://play.redeclipse.net:28888').replace(/\/+$/, '');
-        if (bot.config.matchmaking && bot.config.matchmaking.role) this.config.role = bot.config.matchmaking.role;
         try {
             if (fs.existsSync(this.config.file)) this.data = Object.assign(this.data, JSON.parse(fs.readFileSync(this.config.file, 'utf-8')));
         }
@@ -239,14 +233,14 @@ module.exports = {
         return ticket ? `${link}?ticket=${ticket}` : link;
     },
     modename(st) {
-        if (typeof st.gameversion === 'number' && st.gameversion < this.config.modesfrom) return this.config.modes[st.modeid] || `Mode ${st.modeid}`;
-        const muts = [], gsp = this.config.gsp[st.modeid] || [], named = this.config.mutators.length;
+        if (typeof st.gameversion === 'number' && st.gameversion < names.modesfrom) return names.modes[st.modeid] || `Mode ${st.modeid}`;
+        const muts = [], gsp = names.gsp[st.modeid] || [], named = names.mutators.length;
         for (let i = 0; i < 31; i++) {
             if (!(st.mutators & (1 << i))) continue;
-            const m = i < named ? this.config.mutators[i] : gsp[i - named];
+            const m = i < named ? names.mutators[i] : gsp[i - named];
             if (m) muts.push(m);
         }
-        const mode = this.config.modes[st.modeid] || `Mode ${st.modeid}`;
+        const mode = names.modes[st.modeid] || `Mode ${st.modeid}`;
         return muts.length ? `${mode}: ${muts.join(', ')}` : mode;
     },
     people(server) {
@@ -277,7 +271,7 @@ module.exports = {
             if (description.length + line.length + 1 > 4000) break;
             description += (description ? '\n' : '') + line;
         }
-        return { title: 'Servers', description, color: this.config.colour, footer: { text: 'Click a server to join it. Checked every 30 seconds.' } };
+        return { title: 'Servers', description, color: this.config.colour, footer: { text: `Click a server to join it. Checked every ${Math.round(this.config.refresh / 1000)} seconds.` } };
     },
 
     // The game's own wording, so the queue reads the same everywhere
@@ -296,7 +290,7 @@ module.exports = {
             color: this.config.colour
         };
         const row = new ActionRowBuilder().addComponents(
-            ...this.config.thresholds.map(t => new ButtonBuilder().setCustomId(`matchmaking ${t} join`).setLabel(`${t}+`).setStyle(ButtonStyle.Primary)),
+            ...thresholds.map(t => new ButtonBuilder().setCustomId(`matchmaking ${t} join`).setLabel(`${t}+`).setStyle(ButtonStyle.Primary)),
             new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave').setStyle(ButtonStyle.Secondary)
         );
         return { embeds: [embed], components: [row] };
@@ -334,7 +328,7 @@ module.exports = {
             this.save();
             return;
         }
-        if (!q.next || q.next.needed !== 1 || this.pinged.has(q.next.threshold) || Date.now() - this.lastping < this.config.pinggap) return;
+        if (!this.config.role || !q.next || q.next.needed !== 1 || this.pinged.has(q.next.threshold) || Date.now() - this.lastping < this.config.pinggap) return;
         this.pinged.add(q.next.threshold);
         this.lastping = Date.now();
         const sent = await this.thread.send({ content: `<@&${this.config.role}> one more player would make a ${q.next.threshold}+ match. Join the queue above.`, allowedMentions: { roles: [this.config.role] } });

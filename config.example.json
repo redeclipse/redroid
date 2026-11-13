@@ -14,10 +14,20 @@
     },
     "roles": {
         "alpha": "000000000000000000",
-        "omega": "000000000000000000"
+        "omega": "000000000000000000",
+        "matchmaking": "000000000000000000"
     },
     "matchmaking": {
-        "role": "000000000000000000"
+        "file": "./db/matchmaking.json",
+        "title": "Matchmaking",
+        "pinggap": 1800000,
+        "refresh": 30000,
+        "queueedit": 2000,
+        "remind": 300000,
+        "retry": 30000,
+        "answerwait": 5000,
+        "emptyshown": 3,
+        "colour": 13378082
     },
     "token": "your-bot-token",
     "access": {

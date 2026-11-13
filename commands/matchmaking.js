@@ -30,7 +30,7 @@ module.exports = {
         switch (op) {
             case 'join': {
                 const threshold = Number(id);
-                if (!mm.config.thresholds.includes(threshold)) throw 'That isn\'t a match size.';
+                if (!mm.thresholds.includes(threshold)) throw 'That isn\'t a match size.';
                 content = await mm.join(action.user.id, threshold);
                 break;
             }

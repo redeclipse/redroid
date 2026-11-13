@@ -4,17 +4,14 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Events, escap
 // The Matchmaking thread: a pinned post in the bridge's forum whose first message lists the servers and whose second is the
 // master's Ready queue, which members join from its buttons; the master owns the queue, and this only shows it and passes on
 // what members ask of it, signed in with the bridge's account so it may queue them by their Discord ID
-// The current game's names, as the website's server browser has them; servers older than modesfrom just get their mode
-const names = {
-    modes: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Speedrun'],
-    mutators: ['Free for All', 'Coop', 'Instagib', 'Medieval', 'Kaboom', 'Duel', 'Survivor', 'Classic', 'Onslaught', 'Vampire', 'Resize', 'Hard', 'Arena', 'Dark'],
-    gsp: { 2: ['Gladiator', 'Old School'], 3: ['Quick', 'Defend', 'Protect'], 4: ['Quick', 'King'], 5: ['Hold', 'Basket', 'Assault'], 6: ['Lapped', 'Endurance', 'Gauntlet'] },
-    modesfrom: 278,
-    // the game states, which were fewer before protocol 227, and which of them are a match in play
-    states: ['Waiting', 'Getting Map', 'Sending Map', 'Readying', 'Syncing Info', 'Playing', 'Overtime', 'Intermission', 'Voting'],
-    oldstates: ['Waiting', 'Voting', 'Intermission', 'Playing', 'Overtime'],
-    statesfrom: 227
-};
+// Mode names by the game protocol they apply from, newest first, as the website's server browser has them
+const modes = [
+    { from: 278, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Speedrun'] },
+    { from: 226, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Race'] },
+    { from: 220, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend the Flag', 'Bomber Ball', 'Time Trial', 'Gauntlet'] },
+    { from: 217, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend the Flag', 'Bomber Ball', 'Time Trial'] },
+    { from: 0, names: ['Demo', 'Editing', 'Campaign', 'Deathmatch', 'Capture the Flag', 'Defend the Flag', 'Bomber Ball', 'Time Trial'] }
+];
 // The Thresholds the master takes
 const thresholds = [2, 4, 6, 8];
 
@@ -237,58 +234,44 @@ module.exports = {
         return ticket ? `${link}?ticket=${ticket}` : link;
     },
     modename(st) {
-        if (typeof st.gameversion === 'number' && st.gameversion < names.modesfrom) return names.modes[st.modeid] || `Mode ${st.modeid}`;
-        const muts = [], gsp = names.gsp[st.modeid] || [], named = names.mutators.length;
-        for (let i = 0; i < 31; i++) {
-            if (!(st.mutators & (1 << i))) continue;
-            const m = i < named ? names.mutators[i] : gsp[i - named];
-            if (m) muts.push(m);
-        }
-        const mode = names.modes[st.modeid] || `Mode ${st.modeid}`;
-        return muts.length ? `${mode}: ${muts.join(', ')}` : mode;
-    },
-    // A match's end only means something while it's in play, as the clock stands still otherwise, so as on the website,
-    // a match in play counts down and any other shows its state
-    timetext(st) {
-        const old = typeof st.gameversion === 'number' && st.gameversion < names.statesfrom;
-        const states = old ? names.oldstates : names.states, play = old ? [3, 4] : [5, 6];
-        const known = typeof st.state === 'number';
-        if (known && !play.includes(st.state)) return (states[st.state] || '').toLowerCase();
-        if (typeof st.ends !== 'number') return '';
-        if (st.ends < 0) return 'no time limit';
-        return st.ends * 1000 > Date.now() ? `ends <t:${Math.round(st.ends)}:R>` : 'ending';
+        const v = typeof st.gameversion === 'number' ? st.gameversion : Infinity;
+        return modes.find(m => v >= m.from).names[st.modeid] || null;
     },
     people(server) {
         return server.status && Array.isArray(server.status.players) ? server.status.players.length : 0;
     },
-    // A server as one line: its name linked to its bounce link, what it's playing, how full it is and when the match ends,
-    // which every reader's Discord counts down by itself
-    serverline(server) {
-        // a link's text can't start a list, so only what would break the link or its markdown is escaped
-        const name = escapeMarkdown(this.plain(server.description) || `${server.host}:${server.port}`, { maskedLink: true }).replace(/[[\]]/g, '\\$&');
-        let line = `**[${name}](<${this.bounce(server)}>)**`;
+    // A server as its name, linked to its bounce link, over what it's playing and how full it is; a name's brackets go, as
+    // Discord shows a link's escaped brackets as they are
+    serverlines(server) {
+        const name = escapeMarkdown(this.plain(server.description) || `${server.host}:${server.port}`).replace(/[[\]]/g, '');
         const st = server.status;
-        if (!st) return line;
-        const map = this.plain(st.maptitle || st.map);
-        line += ` ${this.modename(st)} on ${this.escape(map)}, ${this.people(server)}/${st.maxplayers}`;
-        const time = this.timetext(st);
-        if (time) line += `, ${time}`;
-        return line;
+        const details = [];
+        if (st) {
+            const mode = this.modename(st);
+            if (mode) details.push(mode);
+            details.push(`${this.people(server)}/${st.maxplayers} playing`);
+        }
+        return `**[${name}](<${this.bounce(server)}>)**` + (details.length ? `\n${details.join(', ')}` : '');
     },
     listembed() {
         const all = [...this.servers.values()];
         const busy = all.filter(s => this.people(s) > 0).sort((a, b) => this.people(b) - this.people(a) || b.priority - a.priority);
         const empty = all.filter(s => !this.people(s)).sort((a, b) => b.priority - a.priority);
-        const lines = [...busy, ...empty.slice(0, this.config.emptyshown)].map(s => this.serverline(s));
-        const more = empty.length - this.config.emptyshown;
-        if (more > 0) lines.push(`and ${more} more empty ${more === 1 ? 'server' : 'servers'}`);
-        if (!lines.length) lines.push(this.servers.size || this.live ? 'No servers are listed right now.' : 'Waiting for the server list.');
-        let description = '';
-        for (const line of lines) {
-            if (description.length + line.length + 1 > 4000) break;
-            description += (description ? '\n' : '') + line;
+        const shown = [...busy, ...empty].slice(0, Math.max(this.config.shown, busy.length));
+        const blocks = [];
+        let size = 0;
+        for (const server of shown) {
+            const block = this.serverlines(server);
+            if (size + block.length + 2 > 3600) break;
+            blocks.push(block);
+            size += block.length + 2;
         }
-        return { title: 'Servers', description, color: this.config.colour, footer: { text: `Click a server to join it. Checked every ${Math.round(this.config.refresh / 1000)} seconds.` } };
+        const more = all.length - blocks.length, moreempty = blocks.length >= busy.length;
+        if (!blocks.length) blocks.push(this.servers.size || this.live ? 'No servers are listed right now.' : 'Waiting for the server list.');
+        const tail = [];
+        if (more > 0) tail.push(`and ${more} more ${moreempty ? 'empty ' : ''}${more === 1 ? 'server' : 'servers'}.`);
+        tail.push(`[See more on the Server Browser](<${this.config.browser}>)`);
+        return { title: 'Server List', description: blocks.join('\n\n') + '\n\n' + tail.join('\n'), color: this.config.colour };
     },
 
     // The game's own wording, so the queue reads the same everywhere
@@ -302,8 +285,8 @@ module.exports = {
     },
     queuemessage() {
         const embed = {
-            title: 'Ready queue',
-            description: 'Pick a match size: everyone waiting is sent to a server together. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes.\n\n' + this.counts(),
+            title: 'Matchmaking Queue',
+            description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes.\n\n' + this.counts(),
             color: this.config.colour
         };
         const row = new ActionRowBuilder().addComponents(
@@ -395,7 +378,7 @@ module.exports = {
             return;
         }
         // without the bridge there's no server thread to go to, so the Matchmaking thread says where
-        if (this.thread) await this.thread.send({ content: `${content} on ${this.serverline(this.servers.get(`${msg.host}:${msg.port}`) || server)}`, allowedMentions: { users: members.map(m => m.discord) } });
+        if (this.thread) await this.thread.send({ content: `${content} on ${this.serverlines(this.servers.get(`${msg.host}:${msg.port}`) || server)}`, allowedMentions: { users: members.map(m => m.discord) } });
     },
 
     // What the buttons ask of the master, answered once it has taken it or said why not

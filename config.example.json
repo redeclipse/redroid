@@ -80,7 +80,8 @@
         "remind": 300000,
         "retry": 30000,
         "answerwait": 5000,
-        "emptyshown": 3,
+        "shown": 12,
+        "browser": "https://www.redeclipse.net/servers",
         "colour": 13378082
     },
     "token": "your-bot-token",

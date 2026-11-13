@@ -28,9 +28,11 @@ module.exports = {
         let content;
         switch (op) {
             case 'join': {
-                const threshold = Number(id);
+                // channel:threshold, from the row the button is in
+                const [channel, size] = id.split(':'), threshold = Number(size);
                 if (!mm.thresholds.includes(threshold)) throw 'That isn\'t a match size.';
-                content = await mm.join(action.user.id, threshold);
+                if (!mm.channels().some(c => c.name === channel)) throw 'That queue isn\'t open any more.';
+                content = await mm.join(action.user.id, channel, threshold);
                 break;
             }
             case 'leave':

@@ -250,11 +250,13 @@ module.exports = {
             const mode = this.modename(st);
             if (mode) details.push(mode);
             details.push(`${this.people(server)}/${st.maxplayers} playing`);
+            if (Array.isArray(st.build) && st.build.length >= 3) details.push(`v${st.build.slice(0, 3).join('.')}${server.channel ? ` ${server.channel}` : ''}`);
         }
         return `**[${name}](<${this.bounce(server)}>)**` + (details.length ? `\n${details.join(', ')}` : '');
     },
+    // only the servers the queue sends people to, which the master marks with their channel
     listembed() {
-        const all = [...this.servers.values()];
+        const all = [...this.servers.values()].filter(s => s.channel);
         const busy = all.filter(s => this.people(s) > 0).sort((a, b) => this.people(b) - this.people(a) || b.priority - a.priority);
         const empty = all.filter(s => !this.people(s)).sort((a, b) => b.priority - a.priority);
         const shown = [...busy, ...empty].slice(0, Math.max(this.config.shown, busy.length));
@@ -267,21 +269,31 @@ module.exports = {
             size += block.length + 2;
         }
         const more = all.length - blocks.length, moreempty = blocks.length >= busy.length;
-        if (!blocks.length) blocks.push(this.servers.size || this.live ? 'No servers are listed right now.' : 'Waiting for the server list.');
+        if (!blocks.length) blocks.push(this.servers.size || this.live ? 'No servers are taking matches right now.' : 'Waiting for the server list.');
         const tail = [];
         if (more > 0) tail.push(`and ${more} more ${moreempty ? 'empty ' : ''}${more === 1 ? 'server' : 'servers'}.`);
         tail.push(`[See more on the Server Browser](<${this.config.browser}>)`);
         return { title: 'Server List', description: blocks.join('\n\n') + '\n\n' + tail.join('\n'), color: this.config.colour };
     },
 
-    // The game's own wording, so the queue reads the same everywhere
+    // The channels the master has, each a version's servers and players
+    channels() {
+        return this.queue && Array.isArray(this.queue.channels) ? this.queue.channels : [];
+    },
+    channelname(c) {
+        return `${c.name[0].toUpperCase()}${c.name.slice(1)} (v${c.version})`;
+    },
+    // The game's own wording, so the queue reads the same everywhere, a line for each channel when there's more than one
     counts() {
-        const q = this.queue;
-        if (!q) return 'The queue isn\'t reachable right now.';
-        let text = `${q.ready} waiting`;
-        if (q.next && q.next.needed) text += `, ${q.next.needed} more needed for a ${q.next.threshold}+ match`;
-        else if (!q.ready) text = 'Nobody is waiting yet';
-        return text;
+        if (!this.queue) return 'The queue isn\'t reachable right now.';
+        const channels = this.channels();
+        if (!channels.length) return 'The queue isn\'t open right now.';
+        const line = c => {
+            if (c.next && c.next.needed) return `${c.ready} waiting, ${c.next.needed} more needed for a ${c.next.threshold}+ match`;
+            return c.ready ? `${c.ready} waiting` : 'Nobody is waiting yet';
+        };
+        if (channels.length === 1) return `${line(channels[0])}.\nFor ${this.channelname(channels[0])} players.`;
+        return channels.map(c => `**${this.channelname(c)}:** ${line(c)}`).join('\n');
     },
     queuemessage() {
         const embed = {
@@ -289,11 +301,14 @@ module.exports = {
             description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes.\n\n' + this.counts(),
             color: this.config.colour
         };
-        const row = new ActionRowBuilder().addComponents(
-            ...thresholds.map(t => new ButtonBuilder().setCustomId(`matchmaking ${t} join`).setLabel(`${t}+`).setStyle(ButtonStyle.Primary)),
-            new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave').setStyle(ButtonStyle.Secondary)
-        );
-        return { embeds: [embed], components: [row] };
+        // a row of sizes for each channel, named when there's more than one, and Leave on its own
+        const channels = this.channels(), rows = [];
+        for (const c of channels) {
+            rows.push(new ActionRowBuilder().addComponents(...thresholds.map(t => new ButtonBuilder()
+                .setCustomId(`matchmaking ${c.name}:${t} join`).setLabel(channels.length > 1 ? `${c.name} ${t}+` : `${t}+`).setStyle(ButtonStyle.Primary))));
+        }
+        if (rows.length) rows[rows.length - 1].addComponents(new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave').setStyle(ButtonStyle.Secondary));
+        return { embeds: [embed], components: rows };
     },
     queuechanged() {
         if (this.queueediting) return;
@@ -305,7 +320,7 @@ module.exports = {
     },
     async editqueue() {
         if (!this.thread || !this.data.queue) return;
-        const counts = this.counts();
+        const counts = this.counts() + this.channels().map(c => c.name).join();
         if (counts === this.lastqueue) return;
         const msg = await this.thread.messages.fetch(this.data.queue).catch(() => null);
         if (!msg) {
@@ -328,10 +343,11 @@ module.exports = {
             this.save();
             return;
         }
-        if (!this.config.role || !q.next || q.next.needed !== 1 || this.pinged.has(q.next.threshold) || Date.now() - this.lastping < this.config.pinggap) return;
-        this.pinged.add(q.next.threshold);
+        const c = this.channels().find(x => x.next && x.next.needed === 1 && !this.pinged.has(`${x.name}:${x.next.threshold}`));
+        if (!this.config.role || !c || Date.now() - this.lastping < this.config.pinggap) return;
+        this.pinged.add(`${c.name}:${c.next.threshold}`);
         this.lastping = Date.now();
-        const sent = await this.thread.send({ content: `<@&${this.config.role}> one more player would make a ${q.next.threshold}+ match. Join the queue above.`, allowedMentions: { roles: [this.config.role] } });
+        const sent = await this.thread.send({ content: `<@&${this.config.role}> one more ${this.channelname(c)} player would make a ${c.next.threshold}+ match. Join the queue above.`, allowedMentions: { roles: [this.config.role] } });
         this.data.pings.push(sent.id);
         this.save();
     },
@@ -399,10 +415,11 @@ module.exports = {
             });
         });
     },
-    async join(discord, threshold) {
-        const answer = await this.ask(discord, { queue: 'join', threshold });
+    async join(discord, channel, threshold) {
+        const answer = await this.ask(discord, { queue: 'join', channel, threshold });
         if (answer.error) return `Couldn't join the Ready queue: ${answer.error}.`;
-        return `You're in the Ready queue for a ${answer.threshold}+ match until <t:${Math.round(answer.expires)}:t>. You'll be mentioned in the server's thread when it's ready.`;
+        const c = this.channels().find(x => x.name === answer.channel);
+        return `You're in the Ready queue for a ${answer.threshold}+ match${c ? ` with ${this.channelname(c)} players` : ''} until <t:${Math.round(answer.expires)}:t>. You'll be mentioned in the server's thread when it's ready.`;
     },
     async leave(discord) {
         const answer = await this.ask(discord, { queue: 'leave' });
@@ -419,10 +436,10 @@ module.exports = {
     // Where a member stands, from the entries the master shows the bot
     status(discord) {
         const e = this.queue && Array.isArray(this.queue.entries) ? this.queue.entries.find(x => x.discord === discord) : null;
-        if (!e) return `You're not in the Ready queue. ${this.counts()}.`;
+        if (!e) return `You're not in the Ready queue.\n${this.counts()}`;
         if (e.popped) return 'Your match is ready: look for your mention in its server\'s thread.';
         if (e.held) return `You're in the Ready queue for a ${e.threshold}+ match, and already on ${e.held.host}:${e.held.port}.`;
         const until = e.expires ? ` until <t:${Math.round(e.expires)}:t>` : '';
-        return `You're in the Ready queue for a ${e.threshold}+ match${until}. ${this.counts()}.`;
+        return `You're in the Ready queue for a ${e.threshold}+ ${e.channel || ''} match${until}.`;
     }
 };

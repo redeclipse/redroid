@@ -280,6 +280,10 @@ module.exports = {
     channels() {
         return this.queue && Array.isArray(this.queue.channels) ? this.queue.channels : [];
     },
+    versionnote(c) {
+        const branch = c.name === 'release' ? 'the default branch has it' : `switch to the ${c.name} branch to join them`;
+        return `Matches are played on the ${c.name} version (v${c.version}). On Steam, ${branch}.`;
+    },
     channelname(c) {
         return `${c.name[0].toUpperCase()}${c.name.slice(1)} (v${c.version})`;
     },
@@ -292,7 +296,8 @@ module.exports = {
             if (c.next && c.next.needed) return `${c.ready} waiting, ${c.next.needed} more needed for a ${c.next.threshold}+ match`;
             return c.ready ? `${c.ready} waiting` : 'Nobody is waiting yet';
         };
-        if (channels.length === 1) return `${line(channels[0])}.\nFor ${this.channelname(channels[0])} players.`;
+        // one channel is the only version anyone can be matched on, so it says which and how to get it; with more, each row is named
+        if (channels.length === 1) return `${line(channels[0])}.\n${this.versionnote(channels[0])}`;
         return channels.map(c => `**${this.channelname(c)}:** ${line(c)}`).join('\n');
     },
     queuemessage() {

@@ -1,4 +1,4 @@
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 const { AuditLogEvent, ChannelType, Events, OverwriteType, PermissionsBitField, escapeMarkdown } = require('discord.js');
 
 const DISCORD_EMBEDSIZE = 4096;
@@ -49,29 +49,24 @@ module.exports = {
         this.disabled = new Set();
         this.cache = new Map();
 
-        if (fs.existsSync(this.config.file)) {
-            global.log.out(`Loading audit: ${this.config.file}`);
-            try {
-                const parsed = JSON.parse(fs.readFileSync(this.config.file, 'utf-8'));
-                if (Array.isArray(parsed.ignored)) {
-                    for (const id of parsed.ignored) this.ignored.add(String(id));
-                }
-                if (Array.isArray(parsed.disabled)) {
-                    for (const cat of parsed.disabled) {
-                        if (CATEGORIES.includes(cat)) this.disabled.add(cat);
-                    }
-                }
-                if (Array.isArray(parsed.messages)) {
-                    const slice = parsed.messages.slice(-this.config.cache);
-                    for (const m of slice) {
-                        if (m && m.id) this.cache.set(String(m.id), m);
-                    }
-                }
-                global.log.out(`Audit loaded ${this.cache.size} cached messages, ${this.ignored.size} ignored channels, ${this.disabled.size} disabled categories.`);
+        global.log.out(`Loading audit: ${this.config.file}`);
+        const parsed = tools.readjson(this.config.file);
+        if (parsed) {
+            if (Array.isArray(parsed.ignored)) {
+                for (const id of parsed.ignored) this.ignored.add(String(id));
             }
-            catch (e) {
-                global.log.error(e);
+            if (Array.isArray(parsed.disabled)) {
+                for (const cat of parsed.disabled) {
+                    if (CATEGORIES.includes(cat)) this.disabled.add(cat);
+                }
             }
+            if (Array.isArray(parsed.messages)) {
+                const slice = parsed.messages.slice(-this.config.cache);
+                for (const m of slice) {
+                    if (m && m.id) this.cache.set(String(m.id), m);
+                }
+            }
+            global.log.out(`Audit loaded ${this.cache.size} cached messages, ${this.ignored.size} ignored channels, ${this.disabled.size} disabled categories.`);
         }
 
         bot.on(Events.MessageCreate, m => this.messagecreate(m).catch(err => global.log.error(`Audit: ${err.stack || err}`)));

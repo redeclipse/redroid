@@ -1,4 +1,4 @@
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 
 module.exports = {
     name: 'faq',
@@ -8,12 +8,10 @@ module.exports = {
         this.file = (bot.config.faq || {}).file;
         if (!this.file) throw new Error('FAQ: config.faq.file is needed.');
         global.log.out(`Loading FAQs: ${this.file}`);
-        try {
-            this.faqs = JSON.parse(fs.readFileSync(this.file, 'utf-8'));
+        const parsed = tools.readjson(this.file, data => tools.isobject(data) && Object.values(data).every(Array.isArray));
+        if (parsed) {
+            this.faqs = parsed;
             global.log.out('FAQs loaded ' + Object.keys(this.faqs).length + ' entries.');
-        }
-        catch (e) {
-            global.log.error(e);
         }
         return true;
     },

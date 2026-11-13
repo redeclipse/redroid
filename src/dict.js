@@ -1,4 +1,4 @@
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 
 module.exports = {
     name: 'dict',
@@ -10,16 +10,9 @@ module.exports = {
         if (!this.config || !this.config.dir) throw new Error('Dict: config.dict is needed.');
         for (const word of this.list) {
             global.log.out(`Loading dictionary: ${this.config.dir}/${word}.json`);
-            try {
-                const data = fs.readFileSync(`${this.config.dir}/${word}.json`, 'utf-8');
-                if (!data) throw `Error reading ${word} dictionary.`;
-                this.words[word] = JSON.parse(data);
-                global.log.out(`Dictionary '${word}' loaded ` + this.words[word].length + ' entries.');
-            }
-            catch (e) {
-                global.log.error(e);
-                this.words[word] = [];
-            }
+            const data = tools.readjson(`${this.config.dir}/${word}.json`, list => Array.isArray(list) && list.every(value => typeof value === 'string'));
+            this.words[word] = data || [];
+            if (data) global.log.out(`Dictionary '${word}' loaded ` + this.words[word].length + ' entries.');
         }
         return true;
     },

@@ -1,4 +1,4 @@
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Events, escapeMarkdown } = require('discord.js');
 
 // The Matchmaking thread: a pinned post in the bridge's forum whose first message lists the servers and whose second is the
@@ -45,12 +45,8 @@ module.exports = {
         this.config = Object.assign({}, this.config, { role: (bot.config.roles || {}).matchmaking });
         this.bot = bot;
         this.master = auth.master.replace(/\/+$/, '');
-        try {
-            if (fs.existsSync(this.config.file)) this.data = Object.assign(this.data, JSON.parse(fs.readFileSync(this.config.file, 'utf-8')));
-        }
-        catch (e) {
-            global.log.error(e);
-        }
+        const parsed = tools.readjson(this.config.file);
+        if (parsed) this.data = Object.assign(this.data, parsed);
         bot.once(Events.ClientReady, () => this.ready().catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         bot.on(Events.ThreadUpdate, (before, after) => this.threadupdate(after).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         bot.on(Events.MessageCreate, message => this.message(message).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));

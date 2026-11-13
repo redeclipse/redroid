@@ -1,4 +1,4 @@
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 
 module.exports = {
     name: 'quote',
@@ -8,12 +8,10 @@ module.exports = {
         this.file = (bot.config.quote || {}).file;
         if (!this.file) throw new Error('Quote: config.quote.file is needed.');
         global.log.out(`Loading quotes: ${this.file}`);
-        try {
-            this.quotes = JSON.parse(fs.readFileSync(this.file, 'utf-8'));
+        const parsed = tools.readjson(this.file, data => tools.isobject(data) && Object.values(data).every(Array.isArray));
+        if (parsed) {
+            this.quotes = parsed;
             global.log.out('Quotes loaded ' + Object.keys(this.quotes).length + ' entries.');
-        }
-        catch (e) {
-            global.log.error(e);
         }
         return true;
     },
@@ -115,6 +113,7 @@ module.exports = {
         if (!targ) return null;
         if (!this.quotes[targ]) this.quotes[targ] = [];
         this.quotes[targ].push({ body: str, type: type });
+        if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
         return this.quotes[targ].at(-1);
     }
 };

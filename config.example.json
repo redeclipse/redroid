@@ -38,6 +38,10 @@
         "level_regex": 4,
         "regex_maxlen": 100
     },
+    "db": {
+        "daily": "./db/daily",
+        "keep": 7
+    },
     "faq": {
         "file": "./db/faq.json"
     },

@@ -1,4 +1,4 @@
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 const { escapeMarkdown } = require('discord.js');
 
 const GENERIC_NAMES = new Set([
@@ -14,19 +14,17 @@ module.exports = {
         this.file = (bot.config.users || {}).file;
         if (!this.file) throw new Error('Users: config.users.file is needed.');
         global.log.out(`Loading users: ${this.file}`);
-        try {
-            const parsed = JSON.parse(fs.readFileSync(this.file, 'utf-8'));
+        const parsed = tools.readjson(this.file);
+        if (parsed) {
             this.users = {};
             for (const [ key, val ] of Object.entries(parsed)) {
+                if (!tools.isobject(val)) continue;
                 this.users[key] = {
                     ids: Array.isArray(val.ids) ? val.ids.map(String) : [],
                     aliases: Array.isArray(val.aliases) ? val.aliases.map(String) : []
                 };
             }
             global.log.out('Users loaded ' + Object.keys(this.users).length + ' entries.');
-        }
-        catch (e) {
-            global.log.error(e);
         }
         return true;
     },
@@ -252,7 +250,7 @@ module.exports = {
         return { key, entry: this.users[key] };
     },
     mergestores(from, to) {
-        const merged = { quotes: 0, tipjar: 0, faqs: 0 };
+        const merged = { quotes: 0, tipjar: 0, faqs: 0, unsaved: [] };
         if (from === to) return merged;
         if (global.quote && global.quote.quotes) {
             const qfrom = this.findstorekey(global.quote.quotes, from, false);
@@ -265,7 +263,7 @@ module.exports = {
                     }
                 }
                 delete global.quote.quotes[qfrom];
-                global.quote.save();
+                if (!global.quote.save()) merged.unsaved.push('quotes');
             }
         }
         if (global.stats && global.stats.data && global.stats.data.tipjar) {
@@ -275,7 +273,7 @@ module.exports = {
                 global.stats.data.tipjar[to] = (global.stats.data.tipjar[to] || 0) + amount;
                 delete global.stats.data.tipjar[tfrom];
                 merged.tipjar = amount;
-                global.stats.save();
+                if (!global.stats.save()) merged.unsaved.push('tipjar');
             }
         }
         if (global.faq && global.faq.faqs) {
@@ -289,10 +287,13 @@ module.exports = {
                     }
                 }
                 delete global.faq.faqs[ffrom];
-                global.faq.save();
+                if (!global.faq.save()) merged.unsaved.push('FAQs');
             }
         }
         return merged;
+    },
+    checkmerged(merged) {
+        if (merged.unsaved.length) throw `The change was made, but the merged ${merged.unsaved.join(', ')} could not be saved to disk and will be lost on restart.`;
     },
     link(name, userid, unlink = false) {
         const sid = String(userid);
@@ -353,6 +354,7 @@ module.exports = {
         }
         const merged = this.mergestores(clean, key);
         if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
+        this.checkmerged(merged);
         return { key, alias: clean, entry, merged };
     },
     rename(oldname, newname) {
@@ -390,6 +392,7 @@ module.exports = {
 
         const merged = this.mergestores(oldkey, cleanNew);
         if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
+        this.checkmerged(merged);
         return { oldkey, newkey: cleanNew, entry: dest, merged };
     }
 };

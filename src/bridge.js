@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 const { ChannelType, Events, MessageFlags, RESTJSONErrorCodes, RateLimitError, escapeMarkdown } = require('discord.js');
 
 // What Discord allows, which no setting changes: characters in a post, and renames of one thread in a window of ms
@@ -41,14 +41,10 @@ module.exports = {
         }
         this.bot = bot;
         this.master = auth.master.replace(/\/+$/, '');
-        try {
-            if (fs.existsSync(this.config.file)) this.data = JSON.parse(fs.readFileSync(this.config.file, 'utf-8'));
-            if (!this.data.threads) this.data.threads = {};
-            if (!this.data.bounced) this.data.bounced = {};
-        }
-        catch (e) {
-            global.log.error(e);
-        }
+        const parsed = tools.readjson(this.config.file);
+        if (parsed) this.data = parsed;
+        if (!tools.isobject(this.data.threads)) this.data.threads = {};
+        if (!tools.isobject(this.data.bounced)) this.data.bounced = {};
         bot.once(Events.ClientReady, () => this.ready().catch(err => global.log.error(`Bridge: ${err.stack || err}`)));
         bot.on(Events.MessageCreate, message => this.message(message).catch(err => global.log.error(`Bridge: ${err.stack || err}`)));
         this.watchdog = setInterval(() => this.reopenidle(), this.config.idlecheck);

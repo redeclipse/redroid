@@ -1,4 +1,4 @@
-const fs = require('fs');
+const tools = require('./tools'); // global.tools, which starts after this does
 
 module.exports = {
     name: 'stats',
@@ -8,16 +8,13 @@ module.exports = {
         this.config = bot.config.stats;
         if (!this.config || !this.config.file) throw new Error('Stats: config.stats.file is needed.');
         global.log.out(`Loading stats: ${this.config.file}`);
-        try {
-            const parsed = JSON.parse(fs.readFileSync(this.config.file, 'utf-8'));
+        const parsed = tools.readjson(this.config.file);
+        if (parsed) {
             this.data = {
-                counts: parsed.counts || {},
-                tipjar: parsed.tipjar || {}
+                counts: tools.isobject(parsed.counts) ? parsed.counts : {},
+                tipjar: tools.isobject(parsed.tipjar) ? parsed.tipjar : {}
             };
             global.log.out('Stats loaded ' + Object.keys(this.data.counts).length + ' counters and ' + Object.keys(this.data.tipjar).length + ' tipjar entries.');
-        }
-        catch (e) {
-            global.log.error(e);
         }
         return true;
     },
@@ -68,7 +65,7 @@ module.exports = {
     addtip(target, amount = 1) {
         const key = this.findtip(target) || (global.users && global.users.findkey(target, true)) || target;
         this.data.tipjar[key] = (this.data.tipjar[key] || 0) + amount;
-        this.save();
+        if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
         return { name: key, value: this.data.tipjar[key] };
     }
 };

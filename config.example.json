@@ -16,6 +16,9 @@
         "alpha": "000000000000000000",
         "omega": "000000000000000000"
     },
+    "matchmaking": {
+        "role": "000000000000000000"
+    },
     "token": "your-bot-token",
     "access": {
         "users": {

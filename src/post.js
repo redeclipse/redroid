@@ -1,11 +1,13 @@
 const { RESTJSONErrorCodes } = require('discord.js');
 
-// The bot's own posts to its channels, log entries and notices, each channel taking them in turn under Discord's
-// 5 posts every 5 seconds: notices waiting together are merged and never lost, identical log entries waiting
-// together are counted, and log entries past the backlog are dropped, oldest first
-// What Discord allows, which no setting changes: characters in a post, and in an embed's description
+// The bot's own posts to its channels, log entries, audit embeds and notices, each channel taking them in turn under Discord's
+// 5 posts every 5 seconds: notices waiting together are merged and never lost, audit embeds waiting together are packed up to
+// 10 per post, identical log entries waiting together are counted, and log or audit entries past the backlog are dropped, oldest first
+// What Discord allows, which no setting changes: characters in a post, in an embed's description, embeds per post, and total embed characters per post
 const DISCORD_POSTSIZE = 2000;
 const DISCORD_EMBEDSIZE = 4096;
+const DISCORD_EMBEDS = 10;
+const DISCORD_EMBEDTOTAL = 6000;
 
 module.exports = {
     name: 'post',
@@ -45,6 +47,28 @@ module.exports = {
         if (!line) return;
         line.items.push({ kind: 'notice', ...notice });
         this.pump(line);
+    },
+    // An audit embed for the audit channel
+    audit(embed) {
+        const line = this.line(this.bot && this.bot.config.channels.audit);
+        if (!line) return;
+        line.items.push({ kind: 'audit', embed });
+        const audits = line.items.filter(o => o.kind === 'audit');
+        if (audits.length > this.config.backlog) {
+            line.items.splice(line.items.indexOf(audits[0]), 1);
+            line.dropped++;
+        }
+        this.pump(line);
+    },
+    embedsize(embed) {
+        let len = (embed.title ? embed.title.length : 0)
+            + (embed.description ? embed.description.length : 0)
+            + (embed.author && embed.author.name ? embed.author.name.length : 0)
+            + (embed.footer && embed.footer.text ? embed.footer.text.length : 0);
+        if (Array.isArray(embed.fields)) {
+            for (const f of embed.fields) len += (f.name ? f.name.length : 0) + (f.value ? f.value.length : 0);
+        }
+        return len;
     },
 
     line(id) {
@@ -106,6 +130,25 @@ module.exports = {
             }
             if (text.length > DISCORD_POSTSIZE) text = text.slice(0, DISCORD_POSTSIZE - 20) + '\n... (truncated)';
             return { content: text };
+        }
+        if (head.kind === 'audit') {
+            const embeds = [head.embed];
+            let total = this.embedsize(head.embed);
+            while (line.items.length && embeds.length < DISCORD_EMBEDS) {
+                const next = line.items[0];
+                if (next.kind !== 'audit') break;
+                const nextsize = this.embedsize(next.embed);
+                if (total + nextsize > DISCORD_EMBEDTOTAL) break;
+                embeds.push(next.embed);
+                total += nextsize;
+                line.items.shift();
+            }
+            let content;
+            if (line.dropped) {
+                content = `*${line.dropped} audit ${line.dropped === 1 ? 'entry was' : 'entries were'} dropped to keep up.*`;
+                line.dropped = 0;
+            }
+            return { content, embeds };
         }
         const texts = [head.text];
         let size = head.text.length;

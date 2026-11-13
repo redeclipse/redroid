@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const { Client, Collection, GatewayIntentBits, RESTEvents } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, Partials, RESTEvents } = require('discord.js');
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 const timestamp = () => '[' + new Date().toISOString() + ']';
@@ -36,14 +36,23 @@ class Bot extends Client {
     // Instantiate the Discord client
     constructor() {
         super({
-            // Guilds: channels, roles, emojis; GuildMembers (privileged): member events and cache; GuildModeration: bans;
-            // GuildMessages and MessageContent (privileged): what people write in the bridge's threads
+            // Guilds: channels, roles, threads; GuildMembers (privileged): member events and cache; GuildModeration: bans;
+            // GuildExpressions: emojis and stickers; GuildInvites: invite events;
+            // GuildMessages and MessageContent (privileged): what people write in the guild and the bridge's threads
             intents: [
                 GatewayIntentBits.Guilds,
                 GatewayIntentBits.GuildMembers,
                 GatewayIntentBits.GuildModeration,
+                GatewayIntentBits.GuildExpressions,
+                GatewayIntentBits.GuildInvites,
                 GatewayIntentBits.GuildMessages,
                 GatewayIntentBits.MessageContent
+            ],
+            partials: [
+                Partials.Message,
+                Partials.Channel,
+                Partials.GuildMember,
+                Partials.User
             ],
             rest: {
                 invalidRequestWarningInterval: 1000,

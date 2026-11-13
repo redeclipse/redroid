@@ -4,7 +4,8 @@ module.exports = {
     name: Events.GuildMemberAdd,
     once: false,
     execute(bot, member) {
-        global.log.audit(`<@${member.id}> (${member.user.tag}) has joined the server.`);
+        global.log.out(`<@${member.id}> (${member.user.tag}) has joined the server.`);
+        if (global.audit) global.audit.memberadd(member);
         if (member.user.bot) return;
         const members = member.guild.members.cache.filter(m => !m.user.bot).size;
         global.post.notice({

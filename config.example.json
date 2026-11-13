@@ -18,7 +18,7 @@
         "omega": "000000000000000000",
         "matchmaking": "000000000000000000"
     },
-    "levels": { "access": 0, "admin": 5, "assault": 1, "cookie": 1, "dance": 1, "dict": 1, "fail": 1, "faq": 1, "gibberish": 1, "infect": 1, "judge": 4, "kitten": 1, "lava": 1, "matchmaking": 0, "mud": 1, "obit": 1, "oracle": 1, "penish": 1, "ping": 1, "quote": 1, "roulette": 1, "said": 1, "sashimi": 1, "sex": 1, "stfu": 1, "tipjar": 1, "user": 4, "util": 1 },
+    "levels": { "access": 0, "admin": 5, "assault": 1, "audit": 5, "cookie": 1, "dance": 1, "dict": 1, "fail": 1, "faq": 1, "gibberish": 1, "infect": 1, "judge": 4, "kitten": 1, "lava": 1, "matchmaking": 0, "mud": 1, "obit": 1, "oracle": 1, "penish": 1, "ping": 1, "quote": 1, "roulette": 1, "said": 1, "sashimi": 1, "sex": 1, "stfu": 1, "tipjar": 1, "user": 4, "util": 1 },
     "notices": {
         "react": "000000000000000000"
     },
@@ -99,6 +99,21 @@
         "shown": 12,
         "browser": "https://www.redeclipse.net/servers",
         "colour": 13378082
+    },
+    "audit": {
+        "file": "./db/audit.json",
+        "cache": 1000,
+        "savegap": 30000,
+        "delay": 1000,
+        "window": 10000,
+        "ignore": [],
+        "colours": {
+            "create": 5763719,
+            "update": 16705372,
+            "delete": 15548997,
+            "mod": 16744272,
+            "info": 5793266
+        }
     },
     "token": "your-bot-token",
     "access": {

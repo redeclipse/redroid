@@ -35,6 +35,7 @@ module.exports = {
         }
         const level = global.access.level(action.guild, member.user), bonus = 10 - str.length, inter = ret / str.length, result = inter + bonus + level, imperial = result * 0.393700787,
             centimeters = result.toFixed(2), inches = imperial.toFixed(2), score = centimeters * 100.0 / 46.0, percent = score.toFixed(2);
+        global.stats.inc('penish');
         const embed = {
             color: 0x8888ff,
             title: '<:largeandincharge_1:743871161099747399><:largeandincharge_2:743871143764689067><:largeandincharge_3:743871119265759313><:largeandincharge_4:743871101393698959>',

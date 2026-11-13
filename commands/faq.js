@@ -31,6 +31,7 @@ module.exports = {
             throw msg;
         }
 
+        global.stats.inc('faq');
         const embed = {
             color: 0x8888ff,
             title: `⁉ FAQ: ${data.name}`,

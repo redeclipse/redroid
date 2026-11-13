@@ -17,11 +17,13 @@ module.exports = {
     },
     async execute(bot, action) {
         const user = await global.tools.pickuser(action, 'user');
+        const count = global.stats.inc('mud'), mile = global.stats.milestone(count, 'MUD event');
         const embed = {
             color: 0x8888ff,
             title: '🎬 MUD',
             description: `<@${user.id}> `
         };
+        if (mile) embed.footer = { text: mile };
         embed.description += global.dict.query('verb', action.user, user);
         embed.description += ' ';
         embed.description += global.dict.query('adverb', action.user, user);

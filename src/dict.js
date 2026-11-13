@@ -2,7 +2,7 @@ const fs = require('fs');
 
 module.exports = {
     name: 'dict',
-    list: [ 'action', 'adverb', 'answer', 'assault', 'consult', 'disease', 'insert', 'killed', 'object', 'orifice', 'region', 'stfu', 'style', 'transmit', 'verb', 'weapon' ],
+    list: [ 'action', 'adverb', 'answer', 'assault', 'consult', 'disease', 'insert', 'killed', 'object', 'orifice', 'region', 'sex', 'stfu', 'style', 'transmit', 'verb', 'weapon' ],
     words: {},
     config: null, // config.dict: where the dictionaries are, and who may change them
     start(bot) {
@@ -61,11 +61,12 @@ module.exports = {
         const num = index >= 0 ? index : global.tools.rand(0, this.words[word].length);
         return this.words[word][num];
     },
-    query(word, user, target, question = null) {
+    query(word, user, target, question = null, random = null) {
         this.check(word);
         let data = this.lookup(word);
         // Replacer functions, so '$' sequences in user text are not treated as patterns
         data = data.replace(/@u/g, () => `<@${user.id}>`).replace(/@n/g, () => `<@${target.id}>`);
+        if (random) data = data.replace(/@r/g, () => `<@${random.id}>`);
         if (question) data = data.replace(/@q/g, () => question);
         return data;
     },

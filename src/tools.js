@@ -18,6 +18,30 @@ module.exports = {
     escaperegex(str) {
         return str.replace(/[\\^$.*+?()[\]{}|/-]/g, '\\$&');
     },
+    plural(str) {
+        const lower = str.toLowerCase();
+        return `${str}'${lower.endsWith('s') || lower.endsWith('z') ? '' : 's'}`;
+    },
+    dur(secs) {
+        let rem = Math.max(0, Math.floor(Math.abs(secs)));
+        if (rem === 0) return '0s';
+        const units = [
+            [ 'w', 604800 ],
+            [ 'd', 86400 ],
+            [ 'h', 3600 ],
+            [ 'm', 60 ],
+            [ 's', 1 ]
+        ];
+        let out = '';
+        for (const [ label, div ] of units) {
+            if (rem >= div) {
+                const val = Math.floor(rem / div);
+                rem %= div;
+                out += `${val}${label}`;
+            }
+        }
+        return secs < 0 ? `-${out}` : out;
+    },
     // Plain text search, or /regex/flags for trusted users: user regexes can backtrack for minutes and block the bot
     strtoregex(str, level = 0) {
         const args = str.match(/^\/(.*)\/([imsu]*)$/);
@@ -64,6 +88,32 @@ module.exports = {
     async pickmember(action, value) {
         if (global.access.level(action.guild, action.user) >= this.config.level_random) return await this.randommember(action, value);
         return await this.defaultmember(action, value);
+    },
+    async resolvemember(action, str) {
+        if (!str || !action.guild) return null;
+        const match = str.trim().match(/^(?:<@!?(\d+)>|(\d{17,20}))$/);
+        if (!match) return null;
+        const id = match[1] || match[2];
+        const cached = action.guild.members.cache.get(id);
+        if (cached) return cached;
+        try {
+            return await action.guild.members.fetch(id);
+        }
+        catch {
+            return null;
+        }
+    },
+    async timeoutmember(action, user, ms, reason) {
+        if (!action.guild || !user || !ms || ms <= 0) return false;
+        try {
+            const member = await this.getmember(action, user);
+            if (!member || !member.moderatable) return false;
+            await member.timeout(ms, reason);
+            return true;
+        }
+        catch {
+            return false;
+        }
     },
 
     // Files

@@ -48,14 +48,14 @@ module.exports = {
         if (target) {
             const targ = this.findtarg(target, level);
             if (targ && this.quotes[targ]) {
-                const values = this.quotes[targ].filter(value => value.match(regex));
+                const values = this.quotes[targ].filter(value => value.body.match(regex));
                 if (values && values.length > 0) matches[targ] = values;
             }
         }
         else {
             const keys = Object.keys(this.quotes);
             for (const targ of keys) {
-                const values = this.quotes[targ].filter(value => value.match(regex));
+                const values = this.quotes[targ].filter(value => value.body.match(regex));
                 if (values && values.length > 0) matches[targ] = values;
             }
         }
@@ -93,7 +93,7 @@ module.exports = {
         }
         return result;
     },
-    add(target, str) {
+    add(target, str, type = 'msg') {
         let targ = target;
         const keys = Object.keys(this.quotes);
         const regex = new RegExp(global.tools.escaperegex(target), 'i');
@@ -101,7 +101,7 @@ module.exports = {
         if (values.length > 0) targ = values[0];
         if (!targ) return null;
         if (!this.quotes[targ]) this.quotes[targ] = [];
-        this.quotes[targ].push(str);
+        this.quotes[targ].push({ body: str, type: type });
         return this.quotes[targ].at(-1);
     }
 };

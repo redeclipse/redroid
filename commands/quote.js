@@ -22,20 +22,17 @@ module.exports = {
         },
     },
     async execute(bot, action) {
-        /*
-        <@!189189124194959361>
+        let target = action.options.getString('target');
+        const level = global.access.level(action.guild, action.user);
         if (target) {
-            const match = str.match(/^<@!(.*?)>$/);
-            if (match) {
-                const user = action.client.users.cache(u => u.id === match[0]);
-                target = user.username;
+            const member = await global.tools.resolvemember(action, target);
+            if (member) {
+                const disp = global.quote.findtarg(member.displayName, level);
+                target = global.quote.quotes[disp] ? disp : member.user.username;
             }
         }
-        */
-        const target = action.options.getString('target');
-        if (target && target.slice(0, 2) === '<@') throw 'Searching by Discord ID is not yet supported. Try their IRC nickname?';
 
-        const str = action.options.getString('search'), result = global.quote.query(target, str, global.access.level(action.guild, action.user));
+        const str = action.options.getString('search'), result = global.quote.query(target, str, level);
         if (!result) {
             let msg = 'There are no quotes';
             if (target) msg += ` by '${escapeMarkdown(target)}'`;
@@ -44,14 +41,17 @@ module.exports = {
             throw msg;
         }
 
+        const count = global.stats.inc('quote'), mile = global.stats.milestone(count, 'quote to be announced');
         const embed = {
             color: 0x8888ff,
             title: '💬 Quote',
             description: `${target ? result.name : 'A random person'} once said:\n`
         };
+        if (mile) embed.footer = { text: mile };
         embed.description += '```\n';
-        embed.description += '<' + result.name + '> ' + result.value;
-        embed.description += '```';
+        if (result.value.type === 'action') embed.description += `* ${result.name} ${result.value.body}`;
+        else embed.description += `<${result.name}> ${result.value.body}`;
+        embed.description += '\n```';
         await action.reply({ embeds: [ embed ] });
     },
 };

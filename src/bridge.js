@@ -2,38 +2,16 @@ const crypto = require('crypto');
 const fs = require('fs');
 const { ChannelType, Events, MessageFlags, RESTJSONErrorCodes, RateLimitError, escapeMarkdown } = require('discord.js');
 
+// What Discord allows, which no setting changes: characters in a post, and renames of one thread in a window of ms
+const DISCORD_POSTSIZE = 2000;
+const DISCORD_RENAMES = 2;
+const DISCORD_RENAMEWINDOW = 600000;
+
 // Bridges each game server's chat with its own thread in a forum channel, through the master's relay:
 // the server's Event feed comes out as posts, and replies in the thread go back in with POST /say
 module.exports = {
     name: 'bridge',
-    config: {
-        file: './db/bridge.json',
-        master: 'https://play.redeclipse.net:28888',
-        via: 'discord',
-        // the in-game Privilege shown by a Discord user's name, from the access level config.access gives them: the
-        // highest listed at or below it, and none below them all
-        privileges: { 1: 'none', 2: 'player', 3: 'supporter', 4: 'moderator', 5: 'administrator', 6: 'developer', 10: 'creator' },
-        webhook: 'Red Eclipse Bridge',
-        retry: 30000, // ms before reopening a closed socket
-        offlinenote: 600000, // ms between notes that a thread's server is offline
-        authwait: 300000, // ms before signing in to a server again after it refused, as repeated failures get our address banned
-        speakers: 500, // posts remembered for turning a reply into @name
-        discordgap: 600, // ms between posts to Discord, under a webhook's 5 every 2 seconds
-        backlog: 100, // posts waiting for Discord before the oldest are dropped
-        postsize: 2000, // characters in a Discord post
-        gamegap: 300, // ms between messages to one game server
-        usergap: 2000, // ms between one Discord user's messages to one game server, the game's 5 every 10 seconds
-        userbacklog: 5, // one Discord user's messages waiting for one game server before more are refused
-        renames: 2, // renames of one thread Discord allows every renamewindow
-        renamewindow: 600000,
-        pause: 600000, // ms a thread that refused the bot is left alone, as each refusal counts towards Discord's ban
-        heldcheck: 500, // ms between looks at the queue while every post in it waits for a held thread, so new ones for other threads go on
-        timeout: 10000, // ms before a request to a game server is given up
-        // ms a socket may go without a message before it is opened again: the server's pings can't be seen from here, so a
-        // connection that died without closing would otherwise stay open and silent for good
-        idle: 600000,
-        idlecheck: 60000
-    },
+    config: null, // config.bridge
     bot: null,
     forum: null,
     hook: null,
@@ -56,12 +34,13 @@ module.exports = {
     start(bot) {
         const auth = bot.config.auth || {};
         this.relay = auth.relay || (bot.config.channels || {}).relay;
-        if (!auth.handle || !auth.privkey || !this.relay) {
-            global.log.out('Bridge: auth.handle, auth.privkey and a forum channel in auth.relay or channels.relay are needed, not starting.');
+        this.config = bot.config.bridge;
+        if (!auth.handle || !auth.privkey || !auth.master || !this.relay || !this.config) {
+            global.log.out('Bridge: auth.handle, auth.privkey, auth.master, a forum channel in auth.relay or channels.relay and config.bridge are needed, not starting.');
             return false;
         }
         this.bot = bot;
-        this.master = (auth.master || this.config.master).replace(/\/+$/, '');
+        this.master = auth.master.replace(/\/+$/, '');
         try {
             if (fs.existsSync(this.config.file)) this.data = JSON.parse(fs.readFileSync(this.config.file, 'utf-8'));
             if (!this.data.threads) this.data.threads = {};
@@ -339,7 +318,7 @@ module.exports = {
             // anything else in this thread ends the run, so it keeps its order; a run of joins, leaves and map changes
             // is one post, keeping the bot under Discord's 5 posts every 5 seconds in a channel
             if (o.kind !== head.kind || o.username !== head.username) break;
-            if (head.content.length + 1 + o.content.length > this.config.postsize) break;
+            if (head.content.length + 1 + o.content.length > DISCORD_POSTSIZE) break;
             head.content += '\n' + o.content;
             head.create = head.create || o.create; // the run starts a thread if any of it would
             this.outbox.splice(i, 1);
@@ -442,10 +421,10 @@ module.exports = {
         if (!thread || thread.archived || !name || thread.name === name) return; // an archived one is renamed when opened
         if (this.renaming.has(thread.id)) return;
         const now = Date.now();
-        const times = (this.renamed.get(thread.id) || []).filter(t => now - t < this.config.renamewindow);
+        const times = (this.renamed.get(thread.id) || []).filter(t => now - t < DISCORD_RENAMEWINDOW);
         this.renamed.set(thread.id, times);
-        if (times.length >= this.config.renames) {
-            this.renamelater(server, thread, times[0] + this.config.renamewindow - now);
+        if (times.length >= DISCORD_RENAMES) {
+            this.renamelater(server, thread, times[0] + DISCORD_RENAMEWINDOW - now);
             return;
         }
         times.push(now);

@@ -38,13 +38,13 @@ module.exports = {
         const auth = bot.config.auth || {};
         this.forumid = auth.relay || (bot.config.channels || {}).relay;
         this.config = bot.config.matchmaking;
-        if (!auth.handle || !auth.privkey || !this.forumid || !this.config) {
-            global.log.out('Matchmaking: auth.handle, auth.privkey, the bridge\'s forum channel and config.matchmaking are needed, not starting.');
+        if (!auth.handle || !auth.privkey || !auth.master || !this.forumid || !this.config) {
+            global.log.out('Matchmaking: auth.handle, auth.privkey, auth.master, the bridge\'s forum channel and config.matchmaking are needed, not starting.');
             return false;
         }
         this.config = Object.assign({}, this.config, { role: (bot.config.roles || {}).matchmaking });
         this.bot = bot;
-        this.master = (auth.master || 'https://play.redeclipse.net:28888').replace(/\/+$/, '');
+        this.master = auth.master.replace(/\/+$/, '');
         try {
             if (fs.existsSync(this.config.file)) this.data = Object.assign(this.data, JSON.parse(fs.readFileSync(this.config.file, 'utf-8')));
         }

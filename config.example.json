@@ -2,6 +2,7 @@
     "clientId": "000000000000000000",
     "guildId": "000000000000000000",
     "auth": {
+        "master": "https://play.redeclipse.net:28888",
         "handle": "redeclipse-auth-user",
         "privkey": "000000000000000000000000000000000000000000000000"
     },
@@ -16,6 +17,59 @@
         "alpha": "000000000000000000",
         "omega": "000000000000000000",
         "matchmaking": "000000000000000000"
+    },
+    "levels": { "access": 0, "admin": 5, "assault": 1, "dict": 1, "faq": 1, "infect": 1, "matchmaking": 0, "mud": 1, "obit": 1, "oracle": 1, "penish": 1, "ping": 1, "quote": 1, "stfu": 1 },
+    "notices": {
+        "react": "839202957135446097"
+    },
+    "ratesummary": 600000,
+    "post": {
+        "burst": 5,
+        "window": 5000,
+        "backlog": 50,
+        "pause": 600000
+    },
+    "presence": {
+        "interval": 60000,
+        "timeout": 10000
+    },
+    "tools": {
+        "level_random": 2,
+        "level_regex": 4,
+        "regex_maxlen": 100
+    },
+    "faq": {
+        "file": "./db/faq.json"
+    },
+    "quote": {
+        "file": "./db/quote.json"
+    },
+    "dict": {
+        "dir": "./db/dict",
+        "level_add": 2,
+        "level_remove": 2,
+        "level_mass": 4,
+        "buttonttl": 900000
+    },
+    "bridge": {
+        "file": "./db/bridge.json",
+        "via": "discord",
+        "privileges": { "1": "none", "2": "player", "3": "supporter", "4": "moderator", "5": "administrator", "6": "developer", "10": "creator" },
+        "webhook": "Red Eclipse Bridge",
+        "retry": 30000,
+        "offlinenote": 600000,
+        "authwait": 300000,
+        "speakers": 500,
+        "discordgap": 600,
+        "backlog": 100,
+        "gamegap": 300,
+        "usergap": 2000,
+        "userbacklog": 5,
+        "pause": 600000,
+        "heldcheck": 500,
+        "timeout": 10000,
+        "idle": 600000,
+        "idlecheck": 60000
     },
     "matchmaking": {
         "file": "./db/matchmaking.json",

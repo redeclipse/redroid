@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Events } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Events, escapeMarkdown } = require('discord.js');
 
 // The Matchmaking thread: a pinned post in the bridge's forum whose first message lists the servers and whose second is the
 // master's Ready queue, which members join from its buttons; the master owns the queue, and this only shows it and passes on
@@ -9,7 +9,11 @@ const names = {
     modes: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Speedrun'],
     mutators: ['Free for All', 'Coop', 'Instagib', 'Medieval', 'Kaboom', 'Duel', 'Survivor', 'Classic', 'Onslaught', 'Vampire', 'Resize', 'Hard', 'Arena', 'Dark'],
     gsp: { 2: ['Gladiator', 'Old School'], 3: ['Quick', 'Defend', 'Protect'], 4: ['Quick', 'King'], 5: ['Hold', 'Basket', 'Assault'], 6: ['Lapped', 'Endurance', 'Gauntlet'] },
-    modesfrom: 278
+    modesfrom: 278,
+    // the game states, which were fewer before protocol 227, and which of them are a match in play
+    states: ['Waiting', 'Getting Map', 'Sending Map', 'Readying', 'Syncing Info', 'Playing', 'Overtime', 'Intermission', 'Voting'],
+    oldstates: ['Waiting', 'Voting', 'Intermission', 'Playing', 'Overtime'],
+    statesfrom: 227
 };
 // The Thresholds the master takes
 const thresholds = [2, 4, 6, 8];
@@ -243,19 +247,32 @@ module.exports = {
         const mode = names.modes[st.modeid] || `Mode ${st.modeid}`;
         return muts.length ? `${mode}: ${muts.join(', ')}` : mode;
     },
+    // A match's end only means something while it's in play, as the clock stands still otherwise, so as on the website,
+    // a match in play counts down and any other shows its state
+    timetext(st) {
+        const old = typeof st.gameversion === 'number' && st.gameversion < names.statesfrom;
+        const states = old ? names.oldstates : names.states, play = old ? [3, 4] : [5, 6];
+        const known = typeof st.state === 'number';
+        if (known && !play.includes(st.state)) return (states[st.state] || '').toLowerCase();
+        if (typeof st.ends !== 'number') return '';
+        if (st.ends < 0) return 'no time limit';
+        return st.ends * 1000 > Date.now() ? `ends <t:${Math.round(st.ends)}:R>` : 'ending';
+    },
     people(server) {
         return server.status && Array.isArray(server.status.players) ? server.status.players.length : 0;
     },
     // A server as one line: its name linked to its bounce link, what it's playing, how full it is and when the match ends,
     // which every reader's Discord counts down by itself
     serverline(server) {
-        const name = this.escape(this.plain(server.description) || `${server.host}:${server.port}`);
+        // a link's text can't start a list, so only what would break the link or its markdown is escaped
+        const name = escapeMarkdown(this.plain(server.description) || `${server.host}:${server.port}`, { maskedLink: true }).replace(/[[\]]/g, '\\$&');
         let line = `**[${name}](<${this.bounce(server)}>)**`;
         const st = server.status;
         if (!st) return line;
         const map = this.plain(st.maptitle || st.map);
         line += ` ${this.modename(st)} on ${this.escape(map)}, ${this.people(server)}/${st.maxplayers}`;
-        if (typeof st.ends === 'number' && st.ends > 0) line += `, ends <t:${Math.round(st.ends)}:R>`;
+        const time = this.timetext(st);
+        if (time) line += `, ${time}`;
         return line;
     },
     listembed() {

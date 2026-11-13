@@ -51,6 +51,7 @@ module.exports = {
     renaming: new Set(), // thread ids with a rename waiting for a slot
     held: new Map(), // thread id -> when Discord will take an edit to it again, its posts waiting until then
     paused: new Map(), // thread or forum id -> until when it is left alone for refusing the bot
+    bouncing: new Set(), // host:port of threads whose opening message is having its bounce link added this run
 
     start(bot) {
         const auth = bot.config.auth || {};
@@ -64,6 +65,7 @@ module.exports = {
         try {
             if (fs.existsSync(this.config.file)) this.data = JSON.parse(fs.readFileSync(this.config.file, 'utf-8'));
             if (!this.data.threads) this.data.threads = {};
+            if (!this.data.bounced) this.data.bounced = {};
         }
         catch (e) {
             global.log.error(e);
@@ -189,6 +191,28 @@ module.exports = {
         }
         if (!server.feed && !server.retry) this.openfeed(server); // a failing feed waits for its retry, as updates come often
         if (this.threadname(info) !== oldname) this.rename(server).catch(err => global.log.error(`Bridge: ${key}: ${err.stack || err}`));
+        if (this.data.threads[key] && !this.data.bounced[key] && !this.bouncing.has(key)) {
+            this.bouncing.add(key);
+            this.addbounce(server).catch(err => global.log.error(`Bridge: ${key}: ${err.stack || err}`));
+        }
+    },
+    // The master's page that opens the game and joins the server, as Discord won't make a redeclipse:// link clickable
+    bounce(server) {
+        return `${this.master}/join/${encodeURIComponent(server.info.host)}/${server.info.port}`;
+    },
+    opening(server) {
+        return `Chat on **${this.escape(this.threadname(server.info))}** (${server.key}). Write here to talk to its players, or [join it](<${this.bounce(server)}>).`;
+    },
+    // Threads made before bounce links get one in their opening message, once; an archived thread waits for the next run
+    async addbounce(server) {
+        const thread = await this.thread(server, false);
+        if (!thread || thread.archived) return;
+        const first = await thread.fetchStarterMessage().catch(() => null);
+        if (first && first.author.id === this.bot.user.id && !first.content.includes('/join/')) {
+            await first.edit({ content: this.opening(server), flags: MessageFlags.SuppressEmbeds });
+        }
+        this.data.bounced[server.key] = true;
+        this.save();
     },
     remove(server) {
         this.closefeed(server);
@@ -361,6 +385,7 @@ module.exports = {
         server.thread = null;
         if (!this.data.threads[server.key]) return;
         delete this.data.threads[server.key];
+        delete this.data.bounced[server.key];
         this.save();
     },
     // How many are on a server: what its last join or leave said, or else the master's list, which lags a little
@@ -402,9 +427,10 @@ module.exports = {
         if (!create) return null;
         const made = await this.forum.threads.create({
             name: this.threadname(server.info),
-            message: { content: `Chat on **${this.escape(this.threadname(server.info))}** (${server.key}). Write here to talk to its players.` }
+            message: { content: this.opening(server), flags: MessageFlags.SuppressEmbeds }
         });
         this.data.threads[server.key] = made.id;
+        this.data.bounced[server.key] = true;
         this.save();
         return server.thread = made;
     },
@@ -474,7 +500,8 @@ module.exports = {
                 const standing = this.standing(client, 'none');
                 const account = client.handle ? `: ${this.escape(this.plain(client.handle))}` : '';
                 const handle = standing ? ` (${standing}${account})` : '';
-                this.post({ server, kind: 'line', create: true, content: `**${name}**${handle} ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}` });
+                const join = msg.event === 'join' ? ` [Join them](<${this.bounce(server)}>)` : '';
+                this.post({ server, kind: 'line', create: true, content: `**${name}**${handle} ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}${join}` });
                 return;
             }
             case 'identify': {

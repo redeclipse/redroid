@@ -29,13 +29,12 @@ module.exports = {
     token: null,
     stopped: false,
     timers: new Set(),
-    data: { thread: null, list: null, queue: null, pings: [], reminders: {} },
+    data: { thread: null, list: null, queue: null, pings: [], lastping: 0, reminders: {} }, // pings: { id, key } with key channel:Threshold
     servers: new Map(), // host:port -> the master's listing
     queue: null, // the master's last queue event's queue, with its entries
     waiting: new Map(), // Discord ID -> the button waiting to hear the master's answer
     lastlist: '',
     lastqueue: '',
-    lastping: 0,
     pinged: new Set(), // Thresholds already pinged for since the queue last emptied
     emoji: {}, // Privilege -> the guild's emoji for it, from config.matchmaking.emoji
 
@@ -52,6 +51,8 @@ module.exports = {
         this.master = auth.master.replace(/\/+$/, '');
         const parsed = tools.readjson(this.config.file);
         if (parsed) this.data = Object.assign(this.data, parsed);
+        // pings kept as bare ids are from before they had keys, so the next check takes them down
+        this.data.pings = this.data.pings.map(p => typeof p === 'string' ? { id: p, key: '' } : p);
         bot.once(Events.ClientReady, () => this.ready().catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         bot.on(Events.ThreadUpdate, (before, after) => this.threadupdate(after).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         bot.on(Events.MessageCreate, message => this.message(message).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
@@ -352,16 +353,24 @@ module.exports = {
         const embed = {
             title: 'Matchmaking Queue',
             description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes. ' +
-                `Queuing needs a Red Eclipse account linked with \`/link\`, [registered in the game or on the website](<${this.config.account}>).\n\n` + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
+                `Queuing needs a Red Eclipse account linked with \`/link\`, [registered in the game or on the website](<${this.config.account}>).` +
+                (this.config.role ? ' Notify me mentions you here when one more player would make a match, and Stop ends that.' : '') + '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
             color: this.config.colour
         };
-        // a row of sizes for each channel, named when there's more than one, and Leave on its own
+        // a row of sizes for each channel, named when there's more than one, then Leave and the pings in a row of their own
         const channels = this.channels(), rows = [];
-        for (const c of channels) {
+        for (const c of channels.slice(0, 4)) {
             rows.push(new ActionRowBuilder().addComponents(...thresholds.map(t => new ButtonBuilder()
                 .setCustomId(`matchmaking ${c.name}:${t} join`).setLabel(channels.length > 1 ? `${c.name} ${t}+` : `${t}+`).setStyle(ButtonStyle.Primary))));
         }
-        if (rows.length) rows[rows.length - 1].addComponents(new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave').setStyle(ButtonStyle.Secondary));
+        const last = new ActionRowBuilder();
+        if (rows.length) last.addComponents(new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave').setStyle(ButtonStyle.Secondary));
+        if (this.config.role) {
+            last.addComponents(
+                new ButtonBuilder().setCustomId('matchmaking 0 notify').setLabel('Notify me').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('matchmaking 0 stop').setLabel('Stop').setStyle(ButtonStyle.Secondary));
+        }
+        if (last.components.length) rows.push(last);
         return { embeds: [embed], components: rows };
     },
     queuechanged() {
@@ -385,25 +394,54 @@ module.exports = {
         this.lastqueue = counts;
     },
 
-    // @Matchmaking hears when one more would make a match, once for each Threshold until the queue empties, and those
-    // pings go once nobody is waiting
+    // @Matchmaking hears when one more would make a match, once for each Threshold until the queue empties: as soon as
+    // pinggapbig allows when pingbig or more are waiting in that channel, held ones included, and only after pinggap otherwise;
+    // each ping goes as soon as it's no longer true
     async pings() {
         const q = this.queue;
         if (!this.thread || !q) return;
-        if (!q.ready) {
-            if (!this.data.pings.length) return;
-            for (const id of this.data.pings.splice(0)) await this.thread.messages.delete(id).catch(() => null);
-            this.pinged.clear();
+        const key = c => `${c.name}:${c.next.threshold}`;
+        const near = this.channels().filter(c => c.next && c.next.needed === 1), live = new Set(near.map(key));
+        const stale = this.data.pings.filter(p => !live.has(p.key));
+        if (stale.length) {
+            this.data.pings = this.data.pings.filter(p => live.has(p.key));
             this.save();
+            for (const p of stale) await this.thread.messages.delete(p.id).catch(() => null);
+        }
+        if (!q.ready) {
+            this.pinged.clear();
             return;
         }
-        const c = this.channels().find(x => x.next && x.next.needed === 1 && !this.pinged.has(`${x.name}:${x.next.threshold}`));
-        if (!this.config.role || !c || Date.now() - this.lastping < this.config.pinggap) return;
-        this.pinged.add(`${c.name}:${c.next.threshold}`);
-        this.lastping = Date.now();
-        const sent = await this.thread.send({ content: `<@&${this.config.role}> one more ${this.channelname(c)} player would make a ${c.next.threshold}+ match. Join the queue above.`, allowedMentions: { roles: [this.config.role] } });
-        this.data.pings.push(sent.id);
+        if (!this.config.role) return;
+        const since = Date.now() - (this.data.lastping || 0);
+        const big = c => (c.ready || 0) + (c.held || 0) >= this.config.pingbig;
+        const c = near.find(x => !this.pinged.has(key(x)) && since >= (big(x) ? this.config.pinggapbig : this.config.pinggap));
+        if (!c) return;
+        this.pinged.add(key(c));
+        this.data.lastping = Date.now();
         this.save();
+        const sent = await this.thread.send({ content: `<@&${this.config.role}> one more ${this.channelname(c)} player would make a ${c.next.threshold}+ match. Join the queue above.`, allowedMentions: { roles: [this.config.role] } });
+        this.data.pings.push({ id: sent.id, key: key(c) });
+        this.save();
+    },
+
+    // Notify me and Stop give and take the role the pings mention; one without a linked account hears how to get one,
+    // as they can't queue when the ping comes
+    async notify(member, on) {
+        const role = this.config.role;
+        if (!role) return 'Match pings aren\'t set up here.';
+        if (member.roles.cache.has(role) === on) return on ? 'You\'re already mentioned when one more would make a match.' : 'You aren\'t mentioned for matches.';
+        try {
+            if (on) await member.roles.add(role, 'Matchmaking: Notify me');
+            else await member.roles.remove(role, 'Matchmaking: Stop');
+        }
+        catch (err) {
+            global.log.warn(`Matchmaking: couldn't ${on ? 'give' : 'take'} the role ${on ? 'to' : 'from'} ${member.user.tag}: ${err.message}`);
+            return 'Couldn\'t change that right now, so a moderator has been told.';
+        }
+        if (!on) return 'You won\'t be mentioned for matches any more.';
+        const linked = global.accounts && global.accounts.master ? await global.accounts.lookup(member.id) : null;
+        return 'You\'ll be mentioned here when one more player would make a match.' + (linked ? '' : `\n${this.accounthelp()}`);
     },
 
     // A place about to run out gets a mention with a button for more time, deleted once it's done its job, for every account

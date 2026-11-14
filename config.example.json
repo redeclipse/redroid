@@ -98,7 +98,9 @@
     "matchmaking": {
         "file": "./db/matchmaking.json",
         "title": "Matchmaking",
-        "pinggap": 1800000,
+        "pinggap": 14400000,
+        "pinggapbig": 1800000,
+        "pingbig": 3,
         "refresh": 30000,
         "queueedit": 2000,
         "remind": 300000,

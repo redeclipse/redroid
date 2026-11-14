@@ -38,6 +38,10 @@ module.exports = {
             case 'leave':
                 content = await mm.leave(action.user.id);
                 break;
+            case 'notify': case 'stop':
+                if (!action.member) throw 'That only works in the server.';
+                content = await mm.notify(action.member, op === 'notify');
+                break;
             case 'renew':
                 if (id !== action.user.id) throw 'That reminder is for someone else.';
                 content = await mm.renew(action.user.id);

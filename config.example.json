@@ -35,6 +35,7 @@
     },
     "accounts": {
         "session": 1200000,
+        "cache": 600000,
         "timeout": 10000
     },
     "tools": {

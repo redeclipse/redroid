@@ -545,8 +545,8 @@ module.exports = {
     },
     // A chat post's name; someone sending from outside the game shows where from, and handles are on joins and leaves
     username(client) {
-        const name = this.plain(client.name) || 'someone';
-        let user = client.web ? `${name} [${client.via || 'web'}]` : name;
+        const name = this.plain(client.name) || 'someone', account = client.account ? ` (${this.plain(client.account)})` : '';
+        let user = client.web ? `${name}${account} [${client.via || 'web'}]` : name;
         // Discord refuses webhook names containing these, or that are these
         user = user.replace(/discord/gi, 'D1scord').replace(/clyde/gi, 'C1yde').slice(0, 80);
         return /^(everyone|here)$/i.test(user) ? `${user} (in game)` : user;
@@ -579,7 +579,11 @@ module.exports = {
         const to = await this.replyto(message);
         if (to) text = `@${to} ${text}`;
         const from = (message.member && message.member.displayName) || message.author.globalName || message.author.username;
-        this.send(server, { user: message.author.id, message, body: { text, from, via: this.config.via, action, privilege: this.privilege(message) } });
+        // a member who linked their Red Eclipse account shows its handle after their name, and its own standing
+        const linked = global.accounts && global.accounts.master ? await global.accounts.lookup(message.author.id) : null;
+        const body = { text, from, via: this.config.via, action, privilege: linked ? linked.privilege : this.privilege(message) };
+        if (linked) body.account = linked.handle;
+        this.send(server, { user: message.author.id, message, body });
     },
 
     // Messages for a game server wait their turn: one every gamegap, and each Discord user's no more often than usergap,

@@ -107,6 +107,8 @@
         "notewait": 15000,
         "shown": 12,
         "browser": "https://www.redeclipse.net/servers",
+        "account": "https://www.redeclipse.net/account",
+        "emoji": { "none": "none", "player": "player", "supporter": "supporter", "moderator": "moderator", "administrator": "administrator", "developer": "developer", "creator": "founder" },
         "colour": 13378082
     },
     "audit": {

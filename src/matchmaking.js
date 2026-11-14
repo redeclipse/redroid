@@ -2,8 +2,9 @@ const tools = require('./tools'); // global.tools, which starts after this does
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Events, escapeMarkdown } = require('discord.js');
 
 // The Matchmaking thread: a pinned post in the bridge's forum whose first message lists the servers and whose second is the
-// master's Ready queue, which members join from its buttons; the master owns the queue, and this only shows it and passes on
-// what members ask of it, signed in with the bridge's account so it may queue them by their Discord ID
+// master's Matchmaking Queue, which members join from its buttons through the Red Eclipse account they linked; the master owns
+// the queue, and this only shows it and passes on what members ask of it, signed in with the bridge's account so it may queue
+// them by their Discord ID
 // Mode names by the game protocol they apply from, newest first, as the website's server browser has them
 const modes = [
     { from: 278, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Speedrun'] },
@@ -14,6 +15,8 @@ const modes = [
 ];
 // The Thresholds the master takes
 const thresholds = [2, 4, 6, 8];
+// Discord's limit on an embed's description, less room for the lines after the list
+const LISTROOM = 3600;
 
 module.exports = {
     name: 'matchmaking',
@@ -34,6 +37,7 @@ module.exports = {
     lastqueue: '',
     lastping: 0,
     pinged: new Set(), // Thresholds already pinged for since the queue last emptied
+    emoji: {}, // Privilege -> the guild's emoji for it, from config.matchmaking.emoji
 
     start(bot) {
         const auth = bot.config.auth || {};
@@ -79,6 +83,7 @@ module.exports = {
             return;
         }
         this.forum = forum;
+        await this.findemoji();
         await this.ensure();
         await this.connect();
     },
@@ -109,6 +114,16 @@ module.exports = {
         this.lastqueue = '';
         await this.tick();
         await this.editqueue();
+    },
+    // Each Privilege's icon, as the guild's own emoji named in config.matchmaking.emoji; one that's missing is written in words
+    async findemoji() {
+        const emojis = await this.forum.guild.emojis.fetch().catch(() => null);
+        this.emoji = {};
+        for (const [priv, name] of Object.entries(this.config.emoji)) {
+            const found = emojis && emojis.find(e => e.name === name);
+            if (found) this.emoji[priv] = found.toString();
+            else global.log.warn(`Matchmaking: no :${name}: emoji for ${priv}, so it's written in words.`);
+        }
     },
     // The thread only holds the queue, so anything else said there goes, with a note that deletes itself saying where to talk,
     // as even someone who may post there needn't know it isn't for talking
@@ -238,9 +253,8 @@ module.exports = {
     escape(str) {
         return global.bridge.escape(str);
     },
-    bounce(server, ticket) {
-        const link = `${this.master}/join/${encodeURIComponent(server.host)}/${server.port}`;
-        return ticket ? `${link}?ticket=${ticket}` : link;
+    bounce(server) {
+        return `${this.master}/join/${encodeURIComponent(server.host)}/${server.port}`;
     },
     modename(st) {
         const v = typeof st.gameversion === 'number' ? st.gameversion : Infinity;
@@ -309,10 +323,36 @@ module.exports = {
         if (channels.length === 1) return `${line(channels[0])}.\n${this.versionnote(channels[0])}`;
         return channels.map(c => `**${this.channelname(c)}:** ${line(c)}`).join('\n');
     },
+    // Who's waiting, as the game shows them: their Privilege's icon, display name or handle, then the handle, match size and
+    // where they are; as many as fit, then how many more
+    waitinglines() {
+        const entries = this.queue && Array.isArray(this.queue.entries) ? this.queue.entries : [];
+        const channels = this.channels().length > 1;
+        const lines = [];
+        let size = 0, i = 0;
+        for (; i < entries.length; i++) {
+            const e = entries[i], name = this.plain(e.displayname || '');
+            const icon = this.emoji[e.privilege] || (['none', 'player'].includes(e.privilege) ? '' : `(${e.privilege})`);
+            const who = name ? `**${escapeMarkdown(name)}** (${escapeMarkdown(e.handle)})` : `**${escapeMarkdown(e.handle)}**`;
+            const where = e.state === 'held' ? ', on a server' : e.state === 'travelling' ? ', on the way' : '';
+            const line = `${icon ? `${icon} ` : ''}${who} ${channels ? `${e.channel} ` : ''}${e.threshold}+${where}`;
+            if (size + line.length + 1 > LISTROOM) break;
+            lines.push(line);
+            size += line.length + 1;
+        }
+        if (i < entries.length) lines.push(`and ${entries.length - i} more.`);
+        return lines;
+    },
+    // How someone without a linked account gets one, for the queue message and the reply to their button
+    accounthelp() {
+        return `You need a Red Eclipse account to queue. Register one on the Account page of the game's Player menu or at <${this.config.account}>, then link it here with \`/link\` and the code it gives you. Already have an account? Just \`/link\` it.`;
+    },
     queuemessage() {
+        const waiting = this.waitinglines();
         const embed = {
             title: 'Matchmaking Queue',
-            description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes.\n\n' + this.counts(),
+            description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes. ' +
+                `Queuing needs a Red Eclipse account linked with \`/link\`, [registered in the game or on the website](<${this.config.account}>).\n\n` + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
             color: this.config.colour
         };
         // a row of sizes for each channel, named when there's more than one, and Leave on its own
@@ -334,7 +374,7 @@ module.exports = {
     },
     async editqueue() {
         if (!this.thread || !this.data.queue) return;
-        const counts = this.counts() + this.channels().map(c => c.name).join();
+        const counts = this.counts() + this.channels().map(c => c.name).join() + this.waitinglines().join();
         if (counts === this.lastqueue) return;
         const msg = await this.thread.messages.fetch(this.data.queue).catch(() => null);
         if (!msg) {
@@ -366,13 +406,14 @@ module.exports = {
         this.save();
     },
 
-    // A member's place about to run out gets a mention with a button for more time, deleted once it's done its job
+    // A place about to run out gets a mention with a button for more time, deleted once it's done its job, for every account
+    // linked to a member, wherever it queued from
     async reminders() {
         const q = this.queue;
         if (!this.thread || !q || !Array.isArray(q.entries)) return;
         const now = Date.now() / 1000;
         for (const e of q.entries) {
-            if (!e.discord || !e.expires || !(e.sources || []).includes('discord') || e.popped) continue;
+            if (!e.discord || !e.expires || e.popped) continue;
             const left = e.expires - now;
             if (left > this.config.remind / 1000) {
                 if (this.data.reminders[e.discord]) await this.unremind(e.discord);
@@ -380,7 +421,7 @@ module.exports = {
             }
             if (this.data.reminders[e.discord] || left <= 0) continue;
             const row = new ActionRowBuilder().addComponents(new ButtonBuilder().setCustomId(`matchmaking ${e.discord} renew`).setLabel('+30 minutes').setStyle(ButtonStyle.Primary));
-            const sent = await this.thread.send({ content: `<@${e.discord}> your place in the Ready queue ends <t:${Math.round(e.expires)}:R>. Want more time?`, components: [row], allowedMentions: { users: [e.discord] } });
+            const sent = await this.thread.send({ content: `<@${e.discord}> your place in the Matchmaking Queue ends <t:${Math.round(e.expires)}:R>. Want more time?`, components: [row], allowedMentions: { users: [e.discord] } });
             this.data.reminders[e.discord] = sent.id;
             this.save();
         }
@@ -393,15 +434,14 @@ module.exports = {
         if (this.thread) await this.thread.messages.delete(id).catch(() => null);
     },
 
-    // The members a pop sent are mentioned in the server's own thread, which the bridge makes and welcomes first if it has
-    // none, each with a join link carrying their Ticket so the master sees them arrive
+    // The members a pop sent, every account in it linked to one, are mentioned in the server's own thread, which the bridge
+    // makes and welcomes first if it has none, each with a join link; the master sees them arrive by their account
     async pop(msg) {
-        const members = (msg.entries || []).filter(e => e.discord && e.ticket && (e.sources || []).includes('discord'));
+        const members = (msg.entries || []).filter(e => e.discord);
         if (!members.length) return;
         const server = { host: msg.host, port: msg.port };
         for (const m of members) await this.unremind(m.discord);
-        const links = members.map(m => `<@${m.discord}> ([join](<${this.bounce(server, m.ticket)}>))`).join(', ');
-        const content = `**Your match is ready here.** ${links}`;
+        const content = `**Your match is ready here.** ${members.map(m => `<@${m.discord}>`).join(', ')} ([join](<${this.bounce(server)}>))`;
         const bridged = global.bridge && global.bridge.servers && global.bridge.servers.get(`${msg.host}:${msg.port}`);
         if (bridged && global.bridge.forum) {
             global.bridge.post({ server: bridged, kind: 'mention', create: true, content, mentions: members.map(m => m.discord) });
@@ -431,29 +471,31 @@ module.exports = {
     },
     async join(discord, channel, threshold) {
         const answer = await this.ask(discord, { queue: 'join', channel, threshold });
-        if (answer.error) return `Couldn't join the Ready queue: ${answer.error}.`;
+        if (answer.error === 'no account') return this.accounthelp();
+        if (answer.error) return `Couldn't join the Matchmaking Queue: ${answer.error}.`;
         const c = this.channels().find(x => x.name === answer.channel);
-        return `You're in the Ready queue for a ${answer.threshold}+ match${c ? ` with ${this.channelname(c)} players` : ''} until <t:${Math.round(answer.expires)}:t>. You'll be mentioned in the server's thread when it's ready.`;
+        return `You're in the Matchmaking Queue as ${answer.handle} for a ${answer.threshold}+ match${c ? ` with ${this.channelname(c)} players` : ''} until <t:${Math.round(answer.expires)}:t>. You'll be mentioned in the server's thread when it's ready.`;
     },
     async leave(discord) {
         const answer = await this.ask(discord, { queue: 'leave' });
-        if (answer.error && answer.error !== 'superseded') return `Couldn't leave the Ready queue: ${answer.error}.`;
+        if (answer.error === 'no account') return this.accounthelp();
+        if (answer.error && answer.error !== 'superseded') return `Couldn't leave the Matchmaking Queue: ${answer.error}.`;
         await this.unremind(discord);
-        return 'You\'ve left the Ready queue.';
+        return 'You\'ve left the Matchmaking Queue, wherever you joined it from.';
     },
     async renew(discord) {
         const answer = await this.ask(discord, { queue: 'renew' });
+        if (answer.error === 'no account') return this.accounthelp();
         if (answer.error) return `Couldn't add more time: ${answer.error}.`;
         await this.unremind(discord);
-        return `Your place in the Ready queue now lasts until <t:${Math.round(answer.expires)}:t>.`;
+        return `Your place in the Matchmaking Queue now lasts until <t:${Math.round(answer.expires)}:t>.`;
     },
-    // Where a member stands, from the entries the master shows the bot
+    // Where a member stands, from the entries the master shows the bot, which name the member linked to each account
     status(discord) {
         const e = this.queue && Array.isArray(this.queue.entries) ? this.queue.entries.find(x => x.discord === discord) : null;
-        if (!e) return `You're not in the Ready queue.\n${this.counts()}`;
+        if (!e) return `You're not in the Matchmaking Queue.\n${this.counts()}`;
         if (e.popped) return 'Your match is ready: look for your mention in its server\'s thread.';
-        if (e.held) return `You're in the Ready queue for a ${e.threshold}+ match, and already on ${e.held.host}:${e.held.port}.`;
-        const until = e.expires ? ` until <t:${Math.round(e.expires)}:t>` : '';
-        return `You're in the Ready queue for a ${e.threshold}+ ${e.channel || ''} match${until}.`;
+        if (e.held) return `You're in the Matchmaking Queue as ${e.handle} for a ${e.threshold}+ match, and already on ${e.held.host}:${e.held.port}.`;
+        return `You're in the Matchmaking Queue as ${e.handle} for a ${e.threshold}+ ${e.channel || ''} match until <t:${Math.round(e.expires)}:t>.`;
     }
 };

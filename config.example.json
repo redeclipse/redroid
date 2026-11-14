@@ -92,7 +92,7 @@
         "pause": 600000,
         "heldcheck": 500,
         "timeout": 10000,
-        "idle": 600000,
+        "idle": 90000,
         "idlecheck": 60000
     },
     "matchmaking": {

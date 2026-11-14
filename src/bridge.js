@@ -1,6 +1,8 @@
 const crypto = require('crypto');
 const tools = require('./tools'); // global.tools, which starts after this does
 const { ChannelType, Events, MessageFlags, RESTJSONErrorCodes, RateLimitError, escapeMarkdown } = require('discord.js');
+// Node's own WebSocket answers pings without saying so, and these are how a quiet socket shows it's alive
+const WebSocket = require('ws');
 
 // What Discord allows, which no setting changes: characters in a post, and renames of one thread in a window of ms
 const DISCORD_POSTSIZE = 2000;
@@ -89,7 +91,8 @@ module.exports = {
             await this.forum.createWebhook({ name: this.config.webhook, reason: 'Posts game chat under each player\'s name' });
         return this.hook;
     },
-    // A socket that has heard nothing for config.idle is opened again; the master's list gives a fresh snapshot when it does
+    // A socket that has heard nothing for config.idle, not even the ping its server sends every 30 seconds, is opened again;
+    // the master's list gives a fresh snapshot when it does
     reopenidle() {
         if (this.stopped) return;
         const now = Date.now();
@@ -112,6 +115,7 @@ module.exports = {
         if (this.stopped) return;
         const ws = new WebSocket(this.master.replace(/^http/, 'ws') + '/api/v1/servers/live');
         ws.heard = Date.now();
+        ws.on('ping', () => ws.heard = Date.now());
         this.live = ws;
         ws.addEventListener('message', event => {
             ws.heard = Date.now();
@@ -203,6 +207,7 @@ module.exports = {
         if (this.stopped) return;
         const ws = new WebSocket(this.relayurl(server, `/events?events=${FEEDEVENTS}`).replace(/^http/, 'ws'));
         ws.heard = Date.now();
+        ws.on('ping', () => ws.heard = Date.now());
         server.feed = ws;
         server.count = undefined; // joins and leaves may have been missed while it was closed
         ws.addEventListener('message', event => {

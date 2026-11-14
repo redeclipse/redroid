@@ -22,7 +22,8 @@
   },
   "homepage": "https://github.com/redeclipse/redroid#readme",
   "dependencies": {
-    "discord.js": "^14.28.1"
+    "discord.js": "^14.28.1",
+    "ws": "^8.23.0"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

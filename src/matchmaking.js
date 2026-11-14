@@ -354,21 +354,21 @@ module.exports = {
             title: 'Matchmaking Queue',
             description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes. ' +
                 `Queuing needs a Red Eclipse account linked with \`/link\`, [registered in the game or on the website](<${this.config.account}>).` +
-                (this.config.role ? ' Notify me mentions you here when one more player would make a match, and Stop ends that.' : '') + '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
+                (this.config.role ? ' Get Pings mentions you here when one more player would make a match, and Stop Pings ends that.' : '') + '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
             color: this.config.colour
         };
-        // a row of sizes for each channel, named when there's more than one, then Leave and the pings in a row of their own
+        // a row of sizes for each channel, named when there's more than one, then Leave Queue and the pings in a row of their own
         const channels = this.channels(), rows = [];
         for (const c of channels.slice(0, 4)) {
             rows.push(new ActionRowBuilder().addComponents(...thresholds.map(t => new ButtonBuilder()
                 .setCustomId(`matchmaking ${c.name}:${t} join`).setLabel(channels.length > 1 ? `${c.name} ${t}+` : `${t}+`).setStyle(ButtonStyle.Primary))));
         }
         const last = new ActionRowBuilder();
-        if (rows.length) last.addComponents(new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave').setStyle(ButtonStyle.Secondary));
+        if (rows.length) last.addComponents(new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave Queue').setStyle(ButtonStyle.Secondary));
         if (this.config.role) {
             last.addComponents(
-                new ButtonBuilder().setCustomId('matchmaking 0 notify').setLabel('Notify me').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('matchmaking 0 stop').setLabel('Stop').setStyle(ButtonStyle.Secondary));
+                new ButtonBuilder().setCustomId('matchmaking 0 notify').setLabel('Get Pings').setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder().setCustomId('matchmaking 0 stop').setLabel('Stop Pings').setStyle(ButtonStyle.Secondary));
         }
         if (last.components.length) rows.push(last);
         return { embeds: [embed], components: rows };
@@ -425,23 +425,23 @@ module.exports = {
         this.save();
     },
 
-    // Notify me and Stop give and take the role the pings mention; one without a linked account hears how to get one,
+    // Get Pings and Stop Pings give and take the role the pings mention; one without a linked account hears how to get one,
     // as they can't queue when the ping comes
     async notify(member, on) {
         const role = this.config.role;
         if (!role) return 'Match pings aren\'t set up here.';
-        if (member.roles.cache.has(role) === on) return on ? 'You\'re already mentioned when one more would make a match.' : 'You aren\'t mentioned for matches.';
+        if (member.roles.cache.has(role) === on) return on ? 'You already get pings when one more would make a match.' : 'You don\'t get pings for matches.';
         try {
-            if (on) await member.roles.add(role, 'Matchmaking: Notify me');
-            else await member.roles.remove(role, 'Matchmaking: Stop');
+            if (on) await member.roles.add(role, 'Matchmaking: Get Pings');
+            else await member.roles.remove(role, 'Matchmaking: Stop Pings');
         }
         catch (err) {
             global.log.warn(`Matchmaking: couldn't ${on ? 'give' : 'take'} the role ${on ? 'to' : 'from'} ${member.user.tag}: ${err.message}`);
             return 'Couldn\'t change that right now, so a moderator has been told.';
         }
-        if (!on) return 'You won\'t be mentioned for matches any more.';
+        if (!on) return 'You won\'t get pings for matches any more.';
         const linked = global.accounts && global.accounts.master ? await global.accounts.lookup(member.id) : null;
-        return 'You\'ll be mentioned here when one more player would make a match.' + (linked ? '' : `\n${this.accounthelp()}`);
+        return 'You\'ll get a ping here when one more player would make a match.' + (linked ? '' : `\n${this.accounthelp()}`);
     },
 
     // A place about to run out gets a mention with a button for more time, deleted once it's done its job, for every account

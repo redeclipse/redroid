@@ -19,7 +19,7 @@ module.exports = {
     timers: new Set(),
     stopped: false,
     data: { threads: {} },
-    servers: new Map(), // host:port -> { info, feed, token, thread, retry, authfailed, outbox, users, pumping }
+    servers: new Map(), // host:port -> { info, feed, token, tokenused, tokenlife, thread, retry, authfailed, outbox, users, pumping }
     noted: new Map(), // thread id -> when it was last told its server is offline
     speakers: new Map(), // Discord message id -> the player's name it was posted for
     outbox: [], // posts waiting for Discord: { server, kind, create, username, name, content, message }
@@ -155,7 +155,7 @@ module.exports = {
         const key = this.key(info);
         let server = this.servers.get(key);
         if (!server) {
-            server = { key, info, feed: null, token: null, thread: null, retry: false, authfailed: 0, outbox: [], users: new Map(), pumping: false };
+            server = { key, info, feed: null, token: null, tokenused: 0, tokenlife: 0, thread: null, retry: false, authfailed: 0, outbox: [], users: new Map(), pumping: false };
             this.servers.set(key, server);
         }
         const oldname = this.threadname(server.info);
@@ -641,7 +641,10 @@ module.exports = {
     // POST /say as the bot's account, signing in again when the session has run out; gives { error } or { cut }, the
     // characters kept when the game had to shorten it
     async say(server, body) {
+        // a session runs out once unused for its expires, so one that has is dropped rather than sent and counted a failure
+        if (server.token && Date.now() - server.tokenused > server.tokenlife) server.token = null;
         for (let attempt = 0; attempt < 2; attempt++) {
+            let fresh = false;
             if (!server.token) {
                 if (Date.now() - server.authfailed < this.config.authwait) return { error: 'couldn\'t sign in, trying again in a few minutes' };
                 const err = await this.signin(server);
@@ -649,12 +652,15 @@ module.exports = {
                     server.authfailed = Date.now();
                     return { error: err };
                 }
+                fresh = true;
             }
             const res = await this.request(server, '/say', body, server.token);
-            if (res.status === 401) {
+            // servers before the 401 for an ended session answer it with 403 insufficient privilege, as after a restart
+            if (res.status === 401 || (res.status === 403 && res.error === 'insufficient privilege' && !fresh)) {
                 server.token = null;
                 continue;
             }
+            server.tokenused = Date.now();
             if (res.status >= 200 && res.status < 300) return { cut: res.json && res.json.cut };
             global.log.warn(`Bridge: ${server.key} refused a message: ${res.status} ${res.error}`);
             return { error: res.error || `error ${res.status}` };
@@ -670,6 +676,10 @@ module.exports = {
         const done = await this.request(server, '/auth', { id: chal.json.id, answer });
         if (done.status !== 200 || !done.json || !done.json.token) return `couldn't sign in (${done.error || done.status})`;
         server.token = done.json.token;
+        server.tokenused = Date.now();
+        // a minute short of it, as the server's clock for it starts before ours; without one, the 401 says when
+        const life = (Number(done.json.expires) || 0) * 1000;
+        server.tokenlife = life > 0 ? Math.max(life - 60000, life / 2) : Infinity;
         global.log.out(`Bridge: signed in to ${server.key} as ${done.json.name} (${done.json.privilege})`);
         return null;
     },

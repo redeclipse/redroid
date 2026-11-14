@@ -6,6 +6,8 @@ const { ChannelType, Events, MessageFlags, RESTJSONErrorCodes, RateLimitError, e
 const DISCORD_POSTSIZE = 2000;
 const DISCORD_RENAMES = 2;
 const DISCORD_RENAMEWINDOW = 600000;
+// the Event feed's events the bridge posts, so the server sends no others
+const FEEDEVENTS = 'chat,action,join,leave,identify,map,result';
 
 // Bridges each game server's chat with its own thread in a forum channel, through the master's relay:
 // the server's Event feed comes out as posts, and replies in the thread go back in with POST /say
@@ -199,7 +201,7 @@ module.exports = {
 
     openfeed(server) {
         if (this.stopped) return;
-        const ws = new WebSocket(this.relayurl(server, '/events').replace(/^http/, 'ws'));
+        const ws = new WebSocket(this.relayurl(server, `/events?events=${FEEDEVENTS}`).replace(/^http/, 'ws'));
         ws.heard = Date.now();
         server.feed = ws;
         server.count = undefined; // joins and leaves may have been missed while it was closed

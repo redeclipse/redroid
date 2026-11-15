@@ -54,6 +54,9 @@ class Bot extends Client {
                 Partials.GuildMember,
                 Partials.User
             ],
+            // Nothing the bot posts pings anyone unless it says who: much of what it posts carries text from players,
+            // servers and channel names, and the pings it means to send name their users or roles
+            allowedMentions: { parse: [], repliedUser: true },
             rest: {
                 invalidRequestWarningInterval: 1000,
                 // A channel edit that would wait for a rate limit throws instead, so a thread rename (2 every 10 minutes) can't hold up what's behind it

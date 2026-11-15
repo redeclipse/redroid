@@ -36,7 +36,6 @@ module.exports = {
     lastlist: '',
     lastqueue: '',
     pinged: new Set(), // Thresholds already pinged for since the queue last emptied
-    emoji: {}, // Privilege -> the guild's emoji for it, from config.matchmaking.emoji
 
     start(bot) {
         const auth = bot.config.auth || {};
@@ -84,7 +83,6 @@ module.exports = {
             return;
         }
         this.forum = forum;
-        await this.findemoji();
         await this.ensure();
         await this.connect();
     },
@@ -115,16 +113,6 @@ module.exports = {
         this.lastqueue = '';
         await this.tick();
         await this.editqueue();
-    },
-    // Each Privilege's icon, as the guild's own emoji named in config.matchmaking.emoji; one that's missing is written in words, none and player included
-    async findemoji() {
-        const emojis = await this.forum.guild.emojis.fetch().catch(() => null);
-        this.emoji = {};
-        for (const [priv, name] of Object.entries(this.config.emoji)) {
-            const found = emojis && emojis.find(e => e.name === name);
-            if (found) this.emoji[priv] = found.toString();
-            else global.log.warn(`Matchmaking: no :${name}: emoji for ${priv}, so it's written in words.`);
-        }
     },
     // The thread only holds the queue, so anything else said there goes, with a note that deletes itself saying where to talk,
     // as even someone who may post there needn't know it isn't for talking
@@ -321,7 +309,7 @@ module.exports = {
         let size = 0, i = 0;
         for (; i < entries.length; i++) {
             const e = entries[i], name = this.plain(e.displayname || '');
-            const icon = this.emoji[e.privilege] || (e.privilege ? `(${e.privilege})` : '');
+            const icon = global.emoji.get(global.emoji.privilege(e.privilege)) || (e.privilege ? `(${e.privilege})` : '');
             const who = name ? `**${escapeMarkdown(name)}** (${escapeMarkdown(e.handle)})` : `**${escapeMarkdown(e.handle)}**`;
             const where = e.state === 'held' ? ', on a server' : e.state === 'travelling' ? ', on the way' : '';
             const line = `${icon ? `${icon} ` : ''}${who} ${channels ? `${e.channel} ` : ''}${e.threshold}+${where}`;

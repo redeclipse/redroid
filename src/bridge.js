@@ -570,14 +570,11 @@ module.exports = {
         const where = this.escape(this.plain(m.maptitle || m.map));
         return mode ? `${out} in **${this.escape(mode)}** on **${where}**` : `${out} on **${where}**`;
     },
-    // A player's Privilege icon before their name on a line post, as the guild's emoji the Matchmaking thread uses, none included,
-    // and one the bot doesn't know as none, as the game clamps it; nothing from servers too old to say, or while the emoji aren't found
+    // A player's Privilege icon before their name on a line post, none included, and the local one for a Privilege the server gave;
+    // nothing from servers too old to say, or while its emoji isn't found
     icon(client) {
         if (client.bot || typeof client.privilege !== 'string') return '';
-        const privs = ['none', 'player', 'supporter', 'moderator', 'administrator', 'developer', 'founder'];
-        const priv = privs.includes(client.privilege.toLowerCase()) ? client.privilege.toLowerCase() : 'none';
-        const emoji = global.matchmaking && global.matchmaking.emoji && global.matchmaking.emoji[priv];
-        return emoji ? `${emoji} ` : '';
+        return global.emoji.icons(global.emoji.privilege(client.privilege, client.local));
     },
     // A player's standing as the game's own lines name it, such as "global moderator", when it is above minpriv
     standing(client, minpriv) {

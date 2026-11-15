@@ -22,6 +22,7 @@
     "notices": {
         "react": "000000000000000000"
     },
+    "emoji": {},
     "ratesummary": 600000,
     "post": {
         "burst": 5,
@@ -113,7 +114,6 @@
         "shown": 12,
         "browser": "https://www.redeclipse.net/servers",
         "account": "https://www.redeclipse.net/account",
-        "emoji": { "none": "none", "player": "player", "supporter": "supporter", "moderator": "moderator", "administrator": "administrator", "developer": "developer", "founder": "founder" },
         "colour": 13378082
     },
     "audit": {

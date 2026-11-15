@@ -46,7 +46,7 @@ module.exports = {
             const embed = {
                 color: 0xff8888,
                 title: '⚠ Command Failed',
-                description: err instanceof Error ? 'An internal error occurred.' : String(err)
+                description: `${global.emoji ? global.emoji.icons('warning') : ''}${err instanceof Error ? 'An internal error occurred.' : String(err)}`
             };
             try {
                 if (action.replied || action.deferred) await action.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });

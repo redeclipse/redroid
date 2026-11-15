@@ -44,7 +44,7 @@ module.exports = {
         const embed = {
             color: 0x8888ff,
             title: `⁉ FAQ: ${data.name}`,
-            description: str ? `Searching for: ${escapeMarkdown(str)}` : 'Showing all entries',
+            description: `${global.emoji.icons('question')}${str ? `Searching for: ${escapeMarkdown(str)}` : 'Showing all entries'}`,
             fields: [],
             footer: { text: '' }
         };

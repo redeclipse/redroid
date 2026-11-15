@@ -7,6 +7,8 @@ const DISCORD_FIELDVALUE = 1024;
 const CATEGORIES = [
     'messages',
     'members',
+    'names',
+    'avatars',
     'moderation',
     'channels',
     'roles',
@@ -550,10 +552,8 @@ module.exports = {
             }
         }
 
-        if (!this.enabled('members')) return;
-
         // Nickname changes
-        if (oldmember.nickname !== member.nickname) {
+        if (oldmember.nickname !== member.nickname && this.enabled('names')) {
             const entry = await this.fetchlog(member.guild, AuditLogEvent.MemberUpdate, member.id, e => e.changes && e.changes.some(c => c.key === 'nick'));
             const fields = [
                 { name: 'Before', value: oldmember.nickname ? escapeMarkdown(oldmember.nickname) : '*None*', inline: true },
@@ -573,7 +573,7 @@ module.exports = {
         }
 
         // Role additions and removals
-        if (oldmember.roles && member.roles) {
+        if (oldmember.roles && member.roles && this.enabled('members')) {
             const added = member.roles.cache.filter(r => r.id !== member.guild.id && !oldmember.roles.cache.has(r.id));
             const removed = oldmember.roles.cache.filter(r => r.id !== member.guild.id && !member.roles.cache.has(r.id));
             if (added.size > 0 || removed.size > 0) {
@@ -594,7 +594,7 @@ module.exports = {
         }
 
         // Server-specific avatar changes
-        if (oldmember.avatar !== member.avatar) {
+        if (oldmember.avatar !== member.avatar && this.enabled('avatars')) {
             this.send({
                 color: this.config.colours.update,
                 author: this.userauthor(member.user),
@@ -606,18 +606,23 @@ module.exports = {
         }
     },
     async userupdate(olduser, user) {
-        if (!user || olduser.partial || !this.enabled('members')) return;
+        if (!user || olduser.partial) return;
+        const names = this.enabled('names');
+        const avatars = this.enabled('avatars');
+        if (!names && !avatars) return;
         const guild = this.bot.guilds.cache.get(this.bot.config.guildId);
         if (!guild || !guild.members.cache.has(user.id)) return;
 
         const fields = [];
-        if (olduser.username !== user.username) {
-            fields.push({ name: 'Username', value: `${escapeMarkdown(olduser.username || '*None*')} → ${escapeMarkdown(user.username || '*None*')}`, inline: true });
+        if (names) {
+            if (olduser.username !== user.username) {
+                fields.push({ name: 'Username', value: `${escapeMarkdown(olduser.username || '*None*')} → ${escapeMarkdown(user.username || '*None*')}`, inline: true });
+            }
+            if (olduser.globalName !== user.globalName) {
+                fields.push({ name: 'Display Name', value: `${escapeMarkdown(olduser.globalName || '*None*')} → ${escapeMarkdown(user.globalName || '*None*')}`, inline: true });
+            }
         }
-        if (olduser.globalName !== user.globalName) {
-            fields.push({ name: 'Display Name', value: `${escapeMarkdown(olduser.globalName || '*None*')} → ${escapeMarkdown(user.globalName || '*None*')}`, inline: true });
-        }
-        const avatarChanged = olduser.avatar !== user.avatar;
+        const avatarChanged = avatars && olduser.avatar !== user.avatar;
         if (avatarChanged) {
             fields.push({ name: 'Avatar', value: 'Updated', inline: true });
         }

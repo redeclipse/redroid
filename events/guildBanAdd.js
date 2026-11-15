@@ -17,6 +17,6 @@ module.exports = {
         if (banlog && banlog.targetId === ban.user.id && banlog.executorId) text += ` by <@${banlog.executorId}> (${banlog.reason ? escapeMarkdown(banlog.reason) : 'No reason'}).`;
         else text += '.';
 
-        global.post.notice({ color: 0x88ffff, title: '🚫 Banned', icon: 'dominated', text, react: bot.config.notices.react });
+        global.post.notice({ color: 0x88ffff, title: 'Banned', icon: 'dominated', text, react: bot.config.notices.react });
     },
 };

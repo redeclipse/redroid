@@ -11,7 +11,7 @@ module.exports = {
         const members = member.guild.members.cache.filter(m => !m.user.bot).size;
         global.post.notice({
             color: 0x88ff88,
-            title: '👋 Join',
+            title: 'Join',
             icon: 'spectator',
             text: `<@${member.id}> (${escapeMarkdown(member.user.tag)}) has joined the server (#${members}).`,
             thumbnail: member.user.displayAvatarURL()

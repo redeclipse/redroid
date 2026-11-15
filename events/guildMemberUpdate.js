@@ -12,7 +12,7 @@ module.exports = {
             const oldnick = oldmember.nickname ? oldmember.nickname : oldmember.displayName, newnick = member.nickname ? member.nickname : member.displayName;
             global.post.notice({
                 color: 0xffff88,
-                title: '✉ Nickname Update',
+                title: 'Nickname Update',
                 icon: 'chat',
                 text: `<@${member.id}> (${escapeMarkdown(oldmember.user.tag)}) renamed from **${escapeMarkdown(oldnick)}** to **${escapeMarkdown(newnick)}**.`
             });

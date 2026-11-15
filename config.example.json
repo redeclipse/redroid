@@ -93,7 +93,10 @@
         "heldcheck": 500,
         "timeout": 10000,
         "idle": 90000,
-        "idlecheck": 60000
+        "idlecheck": 60000,
+        "feedmax": 65536,
+        "livemax": 4194304,
+        "textmax": 2000
     },
     "matchmaking": {
         "file": "./db/matchmaking.json",

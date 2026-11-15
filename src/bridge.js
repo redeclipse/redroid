@@ -113,7 +113,7 @@ module.exports = {
     // The master's live server list says which servers exist and whether they take part
     openlive() {
         if (this.stopped) return;
-        const ws = new WebSocket(this.master.replace(/^http/, 'ws') + '/api/v1/servers/live');
+        const ws = new WebSocket(this.master.replace(/^http/, 'ws') + '/api/v1/servers/live', { maxPayload: this.config.livemax });
         ws.heard = Date.now();
         ws.on('ping', () => ws.heard = Date.now());
         this.live = ws;
@@ -205,7 +205,8 @@ module.exports = {
 
     openfeed(server) {
         if (this.stopped) return;
-        const ws = new WebSocket(this.relayurl(server, `/events?events=${FEEDEVENTS}`).replace(/^http/, 'ws'));
+        // a server sends what it likes on its feed, so a message too big for any match ends the feed rather than taking the memory
+        const ws = new WebSocket(this.relayurl(server, `/events?events=${FEEDEVENTS}`).replace(/^http/, 'ws'), { maxPayload: this.config.feedmax });
         ws.heard = Date.now();
         ws.on('ping', () => ws.heard = Date.now());
         server.feed = ws;
@@ -219,7 +220,13 @@ module.exports = {
             catch {
                 return;
             }
-            this.feedevent(server, msg);
+            // one server's malformed event goes no further than itself
+            try {
+                this.feedevent(server, msg);
+            }
+            catch (err) {
+                global.log.debug(`Bridge: ${server.key} sent an event that couldn't be read: ${err.message}`);
+            }
         });
         ws.addEventListener('close', () => {
             if (server.feed !== ws) return;
@@ -380,8 +387,10 @@ module.exports = {
 
     // Game markup, such as colours and icons, has no meaning on Discord,
     // and line breaks become spaces, as older builds let web chat start a line that would look like a post of its own
+    // A server's text is cut to what a post could hold first, and a code's brackets never span another code, so the work
+    // grows only with the length
     plain(str) {
-        return String(str || '').replace(/\f(\[[^\]]*\]|\([^)]*\)|\{[^}]*\}|.)/g, '').replace(/\s+/g, ' ').trim();
+        return String(str || '').slice(0, (this.config || {}).textmax).replace(/\f(\[[^\]\f]*\]|\([^)\f]*\)|\{[^}\f]*\}|.)/g, '').replace(/\s+/g, ' ').trim();
     },
     // Game text as Discord shows it, with nothing taken as markdown: escapeMarkdown leaves headings, lists and masked
     // links alone unless asked, and doesn't know subtext (-#) or quotes (>) at all; each piece starts a line of its post

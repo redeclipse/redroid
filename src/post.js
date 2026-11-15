@@ -41,11 +41,13 @@ module.exports = {
         }
         this.pump(line);
     },
-    // A notice for the general channel: { title, color, text, thumbnail, react }, react being an emoji id
+    // A notice for the general channel: { title, color, text, thumbnail, icon, react }, its text starting with the icon emoji named
+    // in icon, and react the icon emoji it's reacted with
     notice(notice) {
         const line = this.line(this.bot && this.bot.config.channels.general);
         if (!line) return;
-        line.items.push({ kind: 'notice', ...notice });
+        const text = `${notice.icon && global.emoji ? global.emoji.icons(notice.icon) : ''}${notice.text}`;
+        line.items.push({ kind: 'notice', ...notice, text });
         this.pump(line);
     },
     // An audit embed for the audit channel

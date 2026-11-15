@@ -253,8 +253,9 @@ module.exports = {
     },
 
     // Messages
-    async react(message, emojiid) {
-        const emoji = message.guild ? message.guild.emojis.cache.get(emojiid) : null;
+    // with the icon emoji of that name
+    async react(message, icon) {
+        const emoji = message.guild && global.emoji ? global.emoji.emoji(icon) : null;
         if (emoji) await message.react(emoji);
     },
 

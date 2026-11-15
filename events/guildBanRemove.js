@@ -17,6 +17,6 @@ module.exports = {
         if (banlog && banlog.targetId === ban.user.id && banlog.executorId) text += ` by <@${banlog.executorId}>.`;
         else text += '.';
 
-        global.post.notice({ color: 0x88ffff, title: '🔆 Unbanned', text });
+        global.post.notice({ color: 0x88ffff, title: '🔆 Unbanned', icon: 'alert', text });
     },
 };

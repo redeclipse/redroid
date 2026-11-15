@@ -16,6 +16,7 @@ module.exports = {
             global.post.notice({
                 color: 0x88ffff,
                 title: '🥾 Kicked',
+                icon: 'warning',
                 text,
                 thumbnail: member.user.displayAvatarURL(),
                 react: bot.config.notices.react
@@ -25,6 +26,7 @@ module.exports = {
         global.post.notice({
             color: 0x88ff88,
             title: '⛔ Leave',
+            icon: 'dead',
             text: `<@${member.id}> (${escapeMarkdown(member.user.tag)}) has left the server (#${members}).`,
             thumbnail: member.user.displayAvatarURL(),
             react: bot.config.notices.react

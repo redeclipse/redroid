@@ -13,6 +13,7 @@ module.exports = {
             global.post.notice({
                 color: 0xffff88,
                 title: '✉ Nickname Update',
+                icon: 'chat',
                 text: `<@${member.id}> (${escapeMarkdown(oldmember.user.tag)}) renamed from **${escapeMarkdown(oldnick)}** to **${escapeMarkdown(newnick)}**.`
             });
         }

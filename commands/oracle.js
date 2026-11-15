@@ -1,4 +1,4 @@
-const { ApplicationCommandOptionType } = require('discord.js');
+const { ApplicationCommandOptionType, escapeMarkdown } = require('discord.js');
 
 module.exports = {
     config: {
@@ -16,7 +16,7 @@ module.exports = {
         }
     },
     async execute(bot, action) {
-        let question = action.options.getString('question');
+        let question = escapeMarkdown(action.options.getString('question'), { maskedLink: true });
         if (question.slice(-1) != '?') question += '?';
         const count = global.stats.inc('oracle'), mile = global.stats.milestone(count, 'future predicted');
         const embed = {

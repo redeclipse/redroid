@@ -1,10 +1,18 @@
 const fs = require('fs');
 const path = require('path');
+const { escapeMarkdown } = require('discord.js');
 
 const DAY = 86400000;
 
+const NOLINKS = { codeBlock: false, inlineCode: false, bold: false, italic: false, underline: false, strikethrough: false, spoiler: false,
+    codeBlockContent: false, inlineCodeContent: false, escape: false, heading: false, bulletedList: false, numberedList: false, maskedLink: true };
+
 module.exports = {
     name: 'tools',
+    // People's text with its masked links shown as text, so the bot's own posts never carry a link dressed up as another
+    nolinks(str) {
+        return escapeMarkdown(String(str), NOLINKS);
+    },
     config: null, // config.tools
     db: null, // config.db: where the daily snapshots go, and how many days of them are kept
     locked: new Set(), // files that were there but could not be read, never written over

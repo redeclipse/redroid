@@ -61,7 +61,7 @@ module.exports = {
         data = data.replace(/@u/g, () => `<@${user.id}>`).replace(/@n/g, () => `<@${target.id}>`);
         if (random) data = data.replace(/@r/g, () => `<@${random.id}>`);
         if (question) data = data.replace(/@q/g, () => question);
-        return data;
+        return global.tools.nolinks(data); // entries and questions are people's text
     },
     add(word, str) {
         this.check(word);

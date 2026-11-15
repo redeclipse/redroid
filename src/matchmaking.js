@@ -116,7 +116,7 @@ module.exports = {
         await this.tick();
         await this.editqueue();
     },
-    // Each Privilege's icon, as the guild's own emoji named in config.matchmaking.emoji; one that's missing is written in words
+    // Each Privilege's icon, as the guild's own emoji named in config.matchmaking.emoji; one that's missing is written in words, none and player included
     async findemoji() {
         const emojis = await this.forum.guild.emojis.fetch().catch(() => null);
         this.emoji = {};
@@ -321,7 +321,7 @@ module.exports = {
         let size = 0, i = 0;
         for (; i < entries.length; i++) {
             const e = entries[i], name = this.plain(e.displayname || '');
-            const icon = this.emoji[e.privilege] || (['none', 'player'].includes(e.privilege) ? '' : `(${e.privilege})`);
+            const icon = this.emoji[e.privilege] || (e.privilege ? `(${e.privilege})` : '');
             const who = name ? `**${escapeMarkdown(name)}** (${escapeMarkdown(e.handle)})` : `**${escapeMarkdown(e.handle)}**`;
             const where = e.state === 'held' ? ', on a server' : e.state === 'travelling' ? ', on the way' : '';
             const line = `${icon ? `${icon} ` : ''}${who} ${channels ? `${e.channel} ` : ''}${e.threshold}+${where}`;

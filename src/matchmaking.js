@@ -5,14 +5,6 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelType, Events, escap
 // master's Matchmaking Queue, which members join from its buttons through the Red Eclipse account they linked; the master owns
 // the queue, and this only shows it and passes on what members ask of it, signed in with the bridge's account so it may queue
 // them by their Discord ID
-// Mode names by the game protocol they apply from, newest first, as the website's server browser has them
-const modes = [
-    { from: 278, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Speedrun'] },
-    { from: 226, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend and Control', 'Bomber Ball', 'Race'] },
-    { from: 220, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend the Flag', 'Bomber Ball', 'Time Trial', 'Gauntlet'] },
-    { from: 217, names: ['Demo', 'Editing', 'Deathmatch', 'Capture the Flag', 'Defend the Flag', 'Bomber Ball', 'Time Trial'] },
-    { from: 0, names: ['Demo', 'Editing', 'Campaign', 'Deathmatch', 'Capture the Flag', 'Defend the Flag', 'Bomber Ball', 'Time Trial'] }
-];
 // The Thresholds the master takes
 const thresholds = [2, 4, 6, 8];
 // Discord's limit on an embed's description, less room for the lines after the list
@@ -233,22 +225,18 @@ module.exports = {
     bounce(server) {
         return `${this.master}/join/${encodeURIComponent(server.host)}/${server.port}`;
     },
-    modename(st) {
-        const v = typeof st.gameversion === 'number' ? st.gameversion : Infinity;
-        return modes.find(m => v >= m.from).names[st.modeid] || null;
-    },
     people(server) {
         return server.status && Array.isArray(server.status.players) ? server.status.players.length : 0;
     },
-    // A server as its name, linked to its bounce link, over what it's playing and how full it is; a name's brackets go, as
-    // Discord shows a link's escaped brackets as they are
+    // A server as its name, linked to its bounce link, over what it's playing, with its mode's and mutators' icons, and how full
+    // it is; a name's brackets go, as Discord shows a link's escaped brackets as they are
     serverlines(server) {
         const name = escapeMarkdown(this.plain(server.description) || `${server.host}:${server.port}`).replace(/[[\]]/g, '');
         const st = server.status;
         const details = [];
         if (st) {
-            const mode = this.modename(st);
-            if (mode) details.push(mode);
+            const mode = global.modes.name(st);
+            if (mode) details.push(`${global.modes.icons(st)}${mode}`);
             details.push(`${this.people(server)}/${st.maxplayers} playing`);
             if (Array.isArray(st.build) && st.build.length >= 3) details.push(`v${st.build.slice(0, 3).join('.')}${server.channel ? ` ${server.channel}` : ''}`);
         }

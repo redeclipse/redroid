@@ -528,20 +528,27 @@ module.exports = {
             case 'map': {
                 server.mode = this.plain(msg.mode); // for the match's result, which doesn't name it
                 if (!this.players(server)) return; // empty servers rotate maps with nobody to tell
-                this.post({ server, kind: 'line', create: false, content: `Now playing **${this.escape(this.plain(msg.mode))}** on **${this.escape(this.plain(msg.map))}**` });
+                const icons = typeof msg.modeid === 'number' ? global.modes.icons(this.modestate(server, msg)) : '';
+                this.post({ server, kind: 'line', create: false, content: `Now playing ${icons}**${this.escape(this.plain(msg.mode))}** on **${this.escape(this.plain(msg.map))}**` });
                 return;
             }
             case 'result': {
                 if (!msg.match) return;
-                this.post({ server, kind: 'line', create: false, content: `Match over: ${this.result(msg.match, server.mode)}` });
+                this.post({ server, kind: 'line', create: false, content: `Match over: ${this.result(msg.match, server.mode, server)}` });
                 return;
             }
             default:
                 return;
         }
     },
-    // Who won a match, as the website's and the game's server browsers say it: the best team or player first, then the mode and map
-    result(m, mode) {
+    // A match's mode and mutators for its icons, read as its server's game protocol has them
+    modestate(server, m) {
+        const status = server.info && server.info.status;
+        return { gameversion: status ? status.gameversion : undefined, modeid: m.modeid, mutators: m.mutators };
+    },
+    // Who won a match, as the website's and the game's server browsers say it: the best team or player first, then the mode and map,
+    // with the winner's, the teams', a winning bot's and the mode's icons
+    result(m, mode, server) {
         const teams = Array.isArray(m.teams) ? m.teams : [], players = Array.isArray(m.players) ? m.players : [];
         const clock = ms => {
             const secs = Math.floor(ms / 1000);
@@ -550,25 +557,26 @@ module.exports = {
         const laptime = ms => ms > 0 ? clock(ms) : 'no time';
         const team = t => {
             const n = this.plain(t.team);
-            return `**${n.charAt(0).toUpperCase()}${n.slice(1)}**`;
+            return `${global.emoji.icons(`team${n.toLowerCase()}`)}**${n.charAt(0).toUpperCase()}${n.slice(1)}**`;
         };
-        const player = p => `**${this.escape(this.plain(p.name) || 'someone')}**`;
+        const player = p => `${p.bot ? global.emoji.icons('bot') : ''}**${this.escape(this.plain(p.name) || 'someone')}**`;
         let out;
         if (teams.length >= 2) {
             const [a, b] = teams;
             const score = m.timed ? laptime(a.score) : `${a.score}${a.score < 0 || b.score < 0 ? ' to ' : '-'}${b.score}`;
-            out = m.draw ? `${team(a)} and ${team(b)} drew ${score}` : `${team(a)} won ${score}`;
+            out = m.draw ? `${team(a)} and ${team(b)} drew ${score}` : `${global.emoji.icons('winner')}${team(a)} won ${score}`;
         }
         else if (players.length) {
             const p = players[0];
             const score = m.timed ? (p.points > 0 ? `in ${laptime(p.points)}` : 'without a time') : `with ${p.points} point${p.points === 1 ? '' : 's'}`;
-            out = m.draw && players.length >= 2 ? `${player(p)} and ${player(players[1])} drew ${score}` : `${player(p)} won ${score}`;
+            out = m.draw && players.length >= 2 ? `${player(p)} and ${player(players[1])} drew ${score}` : `${global.emoji.icons('winner')}${player(p)} won ${score}`;
         }
         else {
             out = 'Nobody won';
         }
         const where = this.escape(this.plain(m.maptitle || m.map));
-        return mode ? `${out} in **${this.escape(mode)}** on **${where}**` : `${out} on **${where}**`;
+        const icons = server && typeof m.modeid === 'number' ? global.modes.icons(this.modestate(server, m)) : '';
+        return mode ? `${out} in ${icons}**${this.escape(mode)}** on **${where}**` : `${out} on **${where}**`;
     },
     // A player's Privilege icon before their name on a line post, none included, and the local one for a Privilege the server gave;
     // nothing from servers too old to say, or while its emoji isn't found

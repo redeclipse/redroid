@@ -197,9 +197,13 @@ module.exports = {
             icon_url: typeof guild.iconURL === 'function' ? (guild.iconURL() || undefined) : undefined
         };
     },
+    // An audit embed, its description starting with the icon for its kind: create, update, delete or mod
     send(embed) {
         if (!global.post) return;
-        global.post.audit(Object.assign({ timestamp: new Date().toISOString() }, embed));
+        const { kind, ...rest } = embed;
+        const icon = global.emoji ? global.emoji.icons({ create: 'info', update: 'settings', delete: 'warning' }[kind] || []) : '';
+        if (icon && rest.description) rest.description = this.trunc(`${icon}${rest.description}`, DISCORD_EMBEDSIZE);
+        global.post.audit(Object.assign({ timestamp: new Date().toISOString() }, rest));
     },
 
     // Queries Discord's Audit Log after a brief delay so the entry has landed
@@ -288,6 +292,7 @@ module.exports = {
             { name: 'After', value: this.trunc(after) }
         ];
         this.send({
+            kind: 'update',
             color: this.config.colours.update,
             author: this.userauthor(newmsg.author),
             title: `Message edited in #${newmsg.channel.name || newmsg.channelId}`,
@@ -350,6 +355,7 @@ module.exports = {
 
         const chanName = message.channel && message.channel.name ? `#${message.channel.name}` : `<#${message.channelId}>`;
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: authorId ? { name: tag || String(authorId), icon_url: avatar || undefined } : this.guildauthor(guild),
             title: `Message deleted in ${chanName}`,
@@ -388,6 +394,7 @@ module.exports = {
         }
 
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: this.guildauthor(channel.guild),
             title: `${messages.size} messages bulk deleted in #${channel.name || channel.id}`,
@@ -403,6 +410,7 @@ module.exports = {
         const created = Math.floor(member.user.createdTimestamp / 1000);
         const count = member.guild.members.cache.filter(m => !m.user.bot).size;
         this.send({
+            kind: 'create',
             color: this.config.colours.create,
             author: this.userauthor(member.user),
             title: 'Member joined',
@@ -454,6 +462,7 @@ module.exports = {
                 }
             }
             this.send({
+                kind: 'delete',
                 color: this.config.colours.delete,
                 author: this.userauthor(member.user),
                 title: 'Member left',
@@ -469,6 +478,7 @@ module.exports = {
             if (kick.executorId) fields.push({ name: 'Moderator', value: this.formatmod(kick, false), inline: true });
             fields.push({ name: 'Reason', value: kick.reason ? this.trunc(escapeMarkdown(kick.reason)) : 'No reason provided', inline: true });
             this.send({
+                kind: 'mod',
                 color: this.config.colours.mod,
                 author: this.userauthor(member.user),
                 title: 'Member kicked',
@@ -488,6 +498,7 @@ module.exports = {
         const reason = (entry && entry.reason) || ban.reason;
         fields.push({ name: 'Reason', value: reason ? this.trunc(escapeMarkdown(reason)) : 'No reason provided', inline: true });
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: this.userauthor(ban.user),
             title: 'Member banned',
@@ -503,6 +514,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Moderator', value: this.formatmod(entry, false), inline: true });
         if (entry && entry.reason) fields.push({ name: 'Reason', value: this.trunc(escapeMarkdown(entry.reason)), inline: true });
         this.send({
+            kind: 'create',
             color: this.config.colours.create,
             author: this.userauthor(ban.user),
             title: 'Member unbanned',
@@ -529,6 +541,7 @@ module.exports = {
                 if (entry && entry.executorId) fields.push({ name: 'Moderator', value: this.formatmod(entry, false), inline: true });
                 if (entry && entry.reason) fields.push({ name: 'Reason', value: this.trunc(escapeMarkdown(entry.reason)) });
                 this.send({
+                    kind: 'mod',
                     color: this.config.colours.mod,
                     author: this.userauthor(member.user),
                     title: 'Member timed out',
@@ -542,6 +555,7 @@ module.exports = {
                 if (entry && entry.executorId) fields.push({ name: 'Moderator', value: this.formatmod(entry, false), inline: true });
                 if (entry && entry.reason) fields.push({ name: 'Reason', value: this.trunc(escapeMarkdown(entry.reason)) });
                 this.send({
+                    kind: 'create',
                     color: this.config.colours.create,
                     author: this.userauthor(member.user),
                     title: 'Timeout removed',
@@ -563,6 +577,7 @@ module.exports = {
                 fields.push({ name: 'Changed by', value: this.formatmod(entry) });
             }
             this.send({
+                kind: 'update',
                 color: this.config.colours.update,
                 author: this.userauthor(member.user),
                 title: 'Nickname changed',
@@ -583,6 +598,7 @@ module.exports = {
                 if (removed.size > 0) fields.push({ name: 'Removed', value: this.trunc(removed.map(r => `<@&${r.id}>`).join(' ')) });
                 if (entry && entry.executorId) fields.push({ name: 'Updated by', value: this.formatmod(entry) });
                 this.send({
+                    kind: 'update',
                     color: this.config.colours.update,
                     author: this.userauthor(member.user),
                     title: 'Member roles updated',
@@ -596,6 +612,7 @@ module.exports = {
         // Server-specific avatar changes
         if (oldmember.avatar !== member.avatar && this.enabled('avatars')) {
             this.send({
+                kind: 'update',
                 color: this.config.colours.update,
                 author: this.userauthor(member.user),
                 title: 'Server avatar changed',
@@ -629,6 +646,7 @@ module.exports = {
         if (!fields.length) return;
 
         this.send({
+            kind: 'update',
             color: this.config.colours.update,
             author: this.userauthor(user),
             title: 'User profile updated',
@@ -694,6 +712,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Created by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'create',
             color: this.config.colours.create,
             author: this.guildauthor(channel.guild),
             title: `${this.channeltype(channel.type)} created`,
@@ -712,6 +731,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Deleted by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: this.guildauthor(channel.guild),
             title: `${this.channeltype(channel.type)} deleted`,
@@ -764,6 +784,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Updated by', value: this.formatmod(entry) });
 
         this.send({
+            kind: 'update',
             color: this.config.colours.update,
             author: this.guildauthor(newchan.guild),
             title: `${this.channeltype(newchan.type)} updated`,
@@ -781,6 +802,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Created by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'create',
             color: role.color || this.config.colours.create,
             author: this.guildauthor(role.guild),
             title: 'Role created',
@@ -798,6 +820,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Deleted by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'delete',
             color: role.color || this.config.colours.delete,
             author: this.guildauthor(role.guild),
             title: 'Role deleted',
@@ -837,6 +860,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Updated by', value: this.formatmod(entry) });
 
         this.send({
+            kind: 'update',
             color: newrole.color || this.config.colours.update,
             author: this.guildauthor(newrole.guild),
             title: 'Role updated',
@@ -860,6 +884,7 @@ module.exports = {
         if (thread.ownerId) fields.push({ name: 'Created by', value: `<@${thread.ownerId}>`, inline: true });
 
         this.send({
+            kind: 'create',
             color: this.config.colours.create,
             author: this.guildauthor(thread.guild),
             title: 'Thread created',
@@ -876,6 +901,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Deleted by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: this.guildauthor(thread.guild),
             title: 'Thread deleted',
@@ -908,6 +934,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Updated by', value: this.formatmod(entry) });
 
         this.send({
+            kind: 'update',
             color: this.config.colours.update,
             author: this.guildauthor(newthread.guild),
             title: 'Thread updated',
@@ -925,6 +952,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Created by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'create',
             color: this.config.colours.create,
             author: this.guildauthor(emoji.guild),
             title: 'Emoji created',
@@ -941,6 +969,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Deleted by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: this.guildauthor(emoji.guild),
             title: 'Emoji deleted',
@@ -959,6 +988,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Updated by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'update',
             color: this.config.colours.update,
             author: this.guildauthor(newemoji.guild),
             title: 'Emoji updated',
@@ -976,6 +1006,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Created by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'create',
             color: this.config.colours.create,
             author: this.guildauthor(sticker.guild),
             title: 'Sticker created',
@@ -992,6 +1023,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Deleted by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: this.guildauthor(sticker.guild),
             title: 'Sticker deleted',
@@ -1015,6 +1047,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Updated by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'update',
             color: this.config.colours.update,
             author: this.guildauthor(newsticker.guild),
             title: 'Sticker updated',
@@ -1036,6 +1069,7 @@ module.exports = {
         if (invite.inviterId) fields.push({ name: 'Created by', value: `<@${invite.inviterId}>`, inline: true });
 
         this.send({
+            kind: 'create',
             color: this.config.colours.create,
             author: invite.inviter ? this.userauthor(invite.inviter) : this.guildauthor(invite.guild),
             title: 'Invite created',
@@ -1053,6 +1087,7 @@ module.exports = {
         if (entry && entry.executorId) fields.push({ name: 'Deleted by', value: this.formatmod(entry), inline: true });
 
         this.send({
+            kind: 'delete',
             color: this.config.colours.delete,
             author: this.guildauthor(invite.guild),
             title: 'Invite deleted',

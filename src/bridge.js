@@ -582,7 +582,8 @@ module.exports = {
     },
     // A chat post's name; someone sending from outside the game shows where from, and handles are on joins and leaves
     username(client) {
-        const name = this.plain(client.name) || 'someone', account = client.account ? ` (${this.plain(client.account)})` : '';
+        // only what the bridge adds has brackets, so a name can't pass itself off as a signed in account or a web sender
+        const name = this.plain(client.name).replace(/[()[\]]/g, '').trim() || 'someone', account = client.account ? ` (${this.plain(client.account)})` : '';
         let user = client.web ? `${name}${account} [${client.via || 'web'}]` : name;
         // Discord refuses webhook names containing these, or that are these
         user = user.replace(/discord/gi, 'D1scord').replace(/clyde/gi, 'C1yde').slice(0, 80);

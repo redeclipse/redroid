@@ -572,12 +572,12 @@ module.exports = {
     },
     // A player's standing as the game's own lines name it, such as "global moderator", when it is above minpriv
     standing(client, minpriv) {
-        const privs = ['none', 'player', 'supporter', 'moderator', 'administrator', 'developer', 'creator'];
+        const privs = ['none', 'player', 'supporter', 'moderator', 'administrator', 'developer', 'founder'];
         if (client.bot || privs.indexOf(client.privilege) <= privs.indexOf(minpriv)) return '';
         if (client.local && ['supporter', 'moderator', 'administrator'].includes(client.privilege)) return `local ${client.privilege}`;
         return {
             player: 'player account', supporter: 'global supporter', moderator: 'global moderator', administrator: 'global administrator',
-            developer: 'project developer', creator: 'project founder'
+            developer: 'project developer', founder: 'project founder'
         }[client.privilege] || '';
     },
     // A chat post's name; someone sending from outside the game shows where from, and handles are on joins and leaves

@@ -78,7 +78,7 @@
     "bridge": {
         "file": "./db/bridge.json",
         "via": "discord",
-        "privileges": { "1": "none", "2": "player", "3": "supporter", "4": "moderator", "5": "administrator", "6": "developer", "10": "creator" },
+        "privileges": { "1": "none", "2": "player", "3": "supporter", "4": "moderator", "5": "administrator", "6": "developer", "10": "founder" },
         "webhook": "Red Eclipse Bridge",
         "retry": 30000,
         "offlinenote": 600000,
@@ -113,7 +113,7 @@
         "shown": 12,
         "browser": "https://www.redeclipse.net/servers",
         "account": "https://www.redeclipse.net/account",
-        "emoji": { "none": "none", "player": "player", "supporter": "supporter", "moderator": "moderator", "administrator": "administrator", "developer": "developer", "creator": "founder" },
+        "emoji": { "none": "none", "player": "player", "supporter": "supporter", "moderator": "moderator", "administrator": "administrator", "developer": "developer", "founder": "founder" },
         "colour": 13378082
     },
     "audit": {
@@ -137,6 +137,6 @@
             "000000000000000000": -1,
             "111111111111111111": 10
         },
-        "privileges": { "player": 1, "supporter": 3, "moderator": 4, "administrator": 5, "developer": 6, "creator": 10 }
+        "privileges": { "player": 1, "supporter": 3, "moderator": 4, "administrator": 5, "developer": 6, "founder": 10 }
     }
 }

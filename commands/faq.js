@@ -43,7 +43,7 @@ module.exports = {
         global.stats.inc('faq');
         const embed = {
             color: 0x8888ff,
-            title: `⁉ FAQ: ${data.name}`,
+            title: `FAQ: ${data.name}`,
             description: `${global.emoji.icons('question')}${str ? `Searching for: ${escapeMarkdown(str)}` : 'Showing all entries'}`,
             fields: [],
             footer: { text: '' }

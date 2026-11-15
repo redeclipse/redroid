@@ -514,7 +514,7 @@ module.exports = {
                 const account = client.handle ? `: ${this.escape(this.plain(client.handle))}` : '';
                 const handle = standing ? ` (${standing}${account})` : '';
                 const join = msg.event === 'join' ? ` [Join them](<${this.bounce(server)}>)` : '';
-                this.post({ server, kind: 'line', create: true, content: `**${name}**${handle} ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}${join}` });
+                this.post({ server, kind: 'line', create: true, content: `${this.icon(client)}**${name}**${handle} ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}${join}` });
                 return;
             }
             case 'identify': {
@@ -522,7 +522,7 @@ module.exports = {
                 if (client.bot || !client.handle) return;
                 const standing = this.standing(client, 'player');
                 const priv = standing ? ` (${standing})` : '';
-                this.post({ server, kind: 'line', create: true, content: `**${name}** identified as ${this.escape(this.plain(client.handle))}${priv}` });
+                this.post({ server, kind: 'line', create: true, content: `${this.icon(client)}**${name}** identified as ${this.escape(this.plain(client.handle))}${priv}` });
                 return;
             }
             case 'map': {
@@ -569,6 +569,15 @@ module.exports = {
         }
         const where = this.escape(this.plain(m.maptitle || m.map));
         return mode ? `${out} in **${this.escape(mode)}** on **${where}**` : `${out} on **${where}**`;
+    },
+    // A player's Privilege icon before their name on a line post, as the guild's emoji the Matchmaking thread uses, none included,
+    // and one the bot doesn't know as none, as the game clamps it; nothing from servers too old to say, or while the emoji aren't found
+    icon(client) {
+        if (client.bot || typeof client.privilege !== 'string') return '';
+        const privs = ['none', 'player', 'supporter', 'moderator', 'administrator', 'developer', 'founder'];
+        const priv = privs.includes(client.privilege.toLowerCase()) ? client.privilege.toLowerCase() : 'none';
+        const emoji = global.matchmaking && global.matchmaking.emoji && global.matchmaking.emoji[priv];
+        return emoji ? `${emoji} ` : '';
     },
     // A player's standing as the game's own lines name it, such as "global moderator", when it is above minpriv
     standing(client, minpriv) {

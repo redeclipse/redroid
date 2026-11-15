@@ -4,6 +4,7 @@ module.exports = {
     name: Events.GuildBanRemove,
     once: false,
     async execute(bot, ban) {
+        if (ban.guild.id !== bot.config.guildId) return;
         global.log.out(`<@${ban.user.id}> (${ban.user.tag}) was unbanned.`);
         const banlog = global.audit
             ? await global.audit.fetchlog(ban.guild, AuditLogEvent.MemberBanRemove, ban.user.id)

@@ -4,6 +4,7 @@ module.exports = {
     name: Events.GuildMemberAdd,
     once: false,
     execute(bot, member) {
+        if (member.guild.id !== bot.config.guildId) return;
         global.log.out(`<@${member.id}> (${member.user.tag}) has joined the server.`);
         if (global.audit) global.audit.memberadd(member);
         if (member.user.bot) return;

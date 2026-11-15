@@ -69,30 +69,34 @@ module.exports = {
             global.log.out(`Audit loaded ${this.cache.size} cached messages, ${this.ignored.size} ignored channels, ${this.disabled.size} disabled categories.`);
         }
 
-        bot.on(Events.MessageCreate, m => this.messagecreate(m).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.MessageUpdate, (o, n) => this.messageupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.MessageDelete, m => this.messagedelete(m).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.MessageBulkDelete, (ms, c) => this.messagebulkdelete(ms, c).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.UserUpdate, (o, n) => this.userupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.ChannelCreate, c => this.channelcreate(c).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.ChannelDelete, c => this.channeldelete(c).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.ChannelUpdate, (o, n) => this.channelupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildRoleCreate, r => this.rolecreate(r).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildRoleDelete, r => this.roledelete(r).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildRoleUpdate, (o, n) => this.roleupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.ThreadCreate, (t, nw) => this.threadcreate(t, nw).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.ThreadDelete, t => this.threaddelete(t).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.ThreadUpdate, (o, n) => this.threadupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildEmojiCreate, e => this.emojicreate(e).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildEmojiDelete, e => this.emojidelete(e).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildEmojiUpdate, (o, n) => this.emojiupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildStickerCreate, s => this.stickercreate(s).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildStickerDelete, s => this.stickerdelete(s).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.GuildStickerUpdate, (o, n) => this.stickerupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.InviteCreate, i => this.invitecreate(i).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
-        bot.on(Events.InviteDelete, i => this.invitedelete(i).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.MessageCreate, m => this.ours(m) && this.messagecreate(m).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.MessageUpdate, (o, n) => this.ours(o, n) && this.messageupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.MessageDelete, m => this.ours(m) && this.messagedelete(m).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.MessageBulkDelete, (ms, c) => this.ours(ms, c) && this.messagebulkdelete(ms, c).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.UserUpdate, (o, n) => this.ours(o, n) && this.userupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.ChannelCreate, c => this.ours(c) && this.channelcreate(c).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.ChannelDelete, c => this.ours(c) && this.channeldelete(c).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.ChannelUpdate, (o, n) => this.ours(o, n) && this.channelupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildRoleCreate, r => this.ours(r) && this.rolecreate(r).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildRoleDelete, r => this.ours(r) && this.roledelete(r).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildRoleUpdate, (o, n) => this.ours(o, n) && this.roleupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.ThreadCreate, (t, nw) => this.ours(t, nw) && this.threadcreate(t, nw).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.ThreadDelete, t => this.ours(t) && this.threaddelete(t).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.ThreadUpdate, (o, n) => this.ours(o, n) && this.threadupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildEmojiCreate, e => this.ours(e) && this.emojicreate(e).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildEmojiDelete, e => this.ours(e) && this.emojidelete(e).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildEmojiUpdate, (o, n) => this.ours(o, n) && this.emojiupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildStickerCreate, s => this.ours(s) && this.stickercreate(s).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildStickerDelete, s => this.ours(s) && this.stickerdelete(s).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.GuildStickerUpdate, (o, n) => this.ours(o, n) && this.stickerupdate(o, n).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.InviteCreate, i => this.ours(i) && this.invitecreate(i).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
+        bot.on(Events.InviteDelete, i => this.ours(i) && this.invitedelete(i).catch(err => global.log.error(`Audit: ${err.stack || err}`)));
 
         return true;
+    },
+    // whether what an event is about is in config.guildId, as the bot may be in other guilds whose doings aren't ours to log
+    ours(...args) {
+        return args.every(a => !a || !a.guild || a.guild.id === this.bot.config.guildId);
     },
     shutdown() {
         this.stopped = true;

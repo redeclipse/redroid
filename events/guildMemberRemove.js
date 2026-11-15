@@ -4,6 +4,7 @@ module.exports = {
     name: Events.GuildMemberRemove,
     once: false,
     async execute(bot, member) {
+        if (member.guild.id !== bot.config.guildId) return;
         global.log.out(`<@${member.id}> (${member.user.tag}) has left the server.`);
         const { kick } = global.audit ? await global.audit.memberremove(member) : { kick: null };
         if (member.user.bot) return;

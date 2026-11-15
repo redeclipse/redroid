@@ -4,6 +4,7 @@ module.exports = {
     name: Events.GuildMemberUpdate,
     once: false,
     async execute(bot, oldmember, member) {
+        if (member.guild.id !== bot.config.guildId) return;
         global.log.out(`<@${member.id}> (${member.user.tag}) has updated information.`);
         if (global.audit) await global.audit.memberupdate(oldmember, member);
         if (member.user.bot || oldmember.partial) return;

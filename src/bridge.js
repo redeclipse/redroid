@@ -27,6 +27,8 @@ module.exports = {
     noted: new Map(), // thread id -> when it was last told its server is offline
     speakers: new Map(), // Discord message id -> the player's name it was posted for
     outbox: [], // posts waiting for Discord: { server, kind, create, username, name, content, message }
+    turns: new Map(), // host:port -> when its chat last went, counted in posts, so each server takes its turn
+    turn: 0,
     pumping: false,
     skipped: new Map(), // host:port -> posts dropped to keep up, told in its thread next
     renamed: new Map(), // thread id -> when it was last renamed, for the ones still inside renamewindow
@@ -256,8 +258,13 @@ module.exports = {
         if (this.paused.get(this.pausekey(item)) > Date.now()) return;
         this.outbox.push(item);
         if (this.outbox.length > this.config.backlog) {
-            // the oldest go first, and their thread is told how many
-            const i = this.outbox.findIndex(o => o.kind === 'chat' || o.kind === 'line');
+            // the oldest from whichever server has the most waiting go first, so one flooding its chat loses its own, and
+            // its thread is told how many
+            const counts = new Map();
+            for (const o of this.outbox) if (o.kind === 'chat' || o.kind === 'line') counts.set(o.server, (counts.get(o.server) || 0) + 1);
+            let most = null;
+            for (const [srv, n] of counts) if (!most || n > counts.get(most)) most = srv;
+            const i = this.outbox.findIndex(o => o.server === most && (o.kind === 'chat' || o.kind === 'line'));
             if (i >= 0) {
                 const [gone] = this.outbox.splice(i, 1);
                 this.skipped.set(gone.server.key, (this.skipped.get(gone.server.key) || 0) + 1);
@@ -315,10 +322,24 @@ module.exports = {
     take() {
         const now = Date.now();
         for (const [id, until] of this.held) if (until <= now) this.held.delete(id);
-        const at = this.outbox.findIndex(o => !this.held.has(this.threadid(o)));
+        const ready = o => !this.held.has(this.threadid(o));
+        // pops, replies and notes go before anyone's chat, then each server's chat takes its turn, the earliest of the one
+        // that went longest ago, so a server flooding its chat only slows its own thread
+        let at = this.outbox.findIndex(o => ready(o) && o.kind !== 'chat' && o.kind !== 'line');
+        if (at < 0) {
+            let least = Infinity;
+            this.outbox.forEach((o, i) => {
+                const last = o.server ? this.turns.get(o.server.key) || 0 : 0;
+                if (ready(o) && last < least) {
+                    least = last;
+                    at = i;
+                }
+            });
+        }
         if (at < 0) return null;
         const [head] = this.outbox.splice(at, 1);
         if (head.kind !== 'chat' && head.kind !== 'line') return head;
+        this.turns.set(head.server.key, ++this.turn);
         for (let i = at; i < this.outbox.length;) {
             const o = this.outbox[i];
             if (o.server !== head.server) {

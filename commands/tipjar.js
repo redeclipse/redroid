@@ -27,7 +27,7 @@ module.exports = {
                         {
                             type: ApplicationCommandOptionType.String,
                             name: 'target',
-                            description: 'Recipient user mention or name (level 4+).',
+                            description: 'Recipient user mention or name (level 3+).',
                             required: true
                         },
                         {

@@ -18,7 +18,7 @@
         "omega": "000000000000000000",
         "matchmaking": "000000000000000000"
     },
-    "levels": { "access": 0, "admin": 5, "assault": 1, "audit": 5, "cookie": 1, "dance": 1, "dict": 1, "fail": 1, "faq": 1, "gibberish": 1, "infect": 1, "judge": 4, "kitten": 1, "lava": 1, "link": 0, "matchmaking": 0, "mud": 1, "obit": 1, "oracle": 1, "penish": 1, "ping": 1, "quote": 1, "roulette": 1, "said": 1, "sashimi": 1, "sex": 1, "stfu": 1, "tipjar": 1, "unlink": 0, "user": 4, "util": 1 },
+    "levels": { "access": 0, "admin": 4, "assault": 1, "audit": 4, "cookie": 1, "dance": 1, "dict": 1, "fail": 1, "faq": 1, "gibberish": 1, "infect": 1, "judge": 3, "kitten": 1, "lava": 1, "link": 0, "matchmaking": 0, "mud": 1, "obit": 1, "oracle": 1, "penish": 1, "ping": 1, "quote": 1, "roulette": 1, "said": 1, "sashimi": 1, "sex": 1, "stfu": 1, "tipjar": 1, "unlink": 0, "user": 3, "util": 1 },
     "notices": {
         "react": "000000000000000000"
     },
@@ -40,7 +40,7 @@
     },
     "tools": {
         "level_random": 2,
-        "level_regex": 4,
+        "level_regex": 3,
         "regex_maxlen": 100
     },
     "db": {
@@ -59,8 +59,8 @@
     "stats": {
         "file": "./db/stats.json",
         "milestone": 1000,
-        "level_revive": 4,
-        "level_tipjar": 4,
+        "level_revive": 3,
+        "level_tipjar": 3,
         "roulette_chambers": 6,
         "roulette_reset": 6000000,
         "roulette_timeout": 60000,
@@ -72,13 +72,13 @@
         "dir": "./db/dict",
         "level_add": 2,
         "level_remove": 2,
-        "level_mass": 4,
+        "level_mass": 3,
         "buttonttl": 900000
     },
     "bridge": {
         "file": "./db/bridge.json",
         "via": "discord",
-        "privileges": { "1": "none", "2": "player", "3": "supporter", "4": "moderator", "5": "administrator", "6": "developer", "10": "founder" },
+        "privileges": { "0": "none", "1": "player", "2": "supporter", "3": "moderator", "4": "administrator", "5": "developer", "10": "founder" },
         "webhook": "Red Eclipse Bridge",
         "retry": 30000,
         "offlinenote": 600000,
@@ -137,6 +137,6 @@
             "000000000000000000": -1,
             "111111111111111111": 10
         },
-        "privileges": { "player": 1, "supporter": 3, "moderator": 4, "administrator": 5, "developer": 6, "founder": 10 }
+        "privileges": { "player": 1, "supporter": 2, "moderator": 3, "administrator": 4, "developer": 5, "founder": 10 }
     }
 }

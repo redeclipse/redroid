@@ -59,6 +59,7 @@ module.exports = {
         }
 
         let loser = parties[global.tools.rand(0, parties.length)];
+        await global.access.refresh(action.guild, loser);
         if (global.access.level(action.guild, loser) >= 10) loser = action.user;
 
         const reason = loser.id === action.user.id

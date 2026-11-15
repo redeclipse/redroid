@@ -87,6 +87,7 @@ module.exports = {
         const key = (resolved && global.stats.findtip(resolved.name)) || global.stats.findtip(raw);
         if (resolved && (resolved.member || resolved.id)) {
             const member = resolved.member || await global.tools.resolvemember(action, resolved.id);
+            if (member) await global.access.refresh(action.guild, member.user);
             const tlevel = member ? global.access.level(action.guild, member.user) : 0;
             if (!key && tlevel < minlevel) {
                 throw `User <@${resolved.id}> must have access level '${minlevel}' or higher.`;

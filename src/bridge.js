@@ -593,6 +593,7 @@ module.exports = {
     async message(message) {
         if (!this.forum || !message.channel || message.channel.parentId !== this.forum.id) return;
         if (message.author.bot || message.webhookId || message.system) return;
+        await global.access.refresh(message.guild, message.author); // the sender's Privilege icon comes from their account
         if (global.access.level(message.guild, message.author) < 0) return; // blocked from the bot, so from the game too
         const key = Object.keys(this.data.threads).find(k => this.data.threads[k] === message.channel.id);
         if (!key) return;

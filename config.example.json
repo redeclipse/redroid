@@ -137,14 +137,6 @@
             "000000000000000000": -1,
             "111111111111111111": 10
         },
-        "roles": {
-            "Developers": 6,
-            "Administrators": 5,
-            "Moderators": 4,
-            "Supporters": 3,
-            "Speshul": 2,
-            "Team Alpha": 1,
-            "Team Omega": 1
-        }
+        "privileges": { "player": 1, "supporter": 3, "moderator": 4, "administrator": 5, "developer": 6, "creator": 10 }
     }
 }

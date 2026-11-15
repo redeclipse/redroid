@@ -26,8 +26,11 @@ module.exports = {
                 global.log.error(`Command '${command.config.chat.name}' has no level in config.levels, refusing it.`);
                 throw 'This command isn\'t set up yet.';
             }
+            if (need > 0) await global.access.refresh(action.guild, action.user);
             if (need > global.access.level(action.guild, action.user)) {
                 global.log.audit(`${action.user.tag} in ${where} failed command: ${data.name} (Level ${need} required)`);
+                // levels come from the member's Red Eclipse account, so one without tells them how to get one
+                if (!global.access.linked(action.user)) throw global.access.accounthelp();
                 throw `Access level '${need}' is required.`;
             }
             global.log.audit(`${action.user.tag} in ${where} executed command '${data.name}'`);

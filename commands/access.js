@@ -17,6 +17,7 @@ module.exports = {
     },
     async execute(bot, action) {
         const user = global.tools.defaultuser(action, 'user');
+        await global.access.refresh(action.guild, user);
         const level = global.access.level(action.guild, user);
         if (level >= 0) {
             await action.reply({

@@ -108,6 +108,12 @@ module.exports = {
         return { status: 401, json: null };
     },
 
+    // the account a member linked as last looked up, { handle, privilege }, or null when unknown or not linked
+    cached(user) {
+        const known = this.linked.get(user);
+        return known ? known.account : null;
+    },
+
     // the account a member linked, { handle, privilege }, or null; asked of the master at most once every config.accounts.cache
     async lookup(user) {
         const known = this.linked.get(user);

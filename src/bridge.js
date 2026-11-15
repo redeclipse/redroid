@@ -678,20 +678,16 @@ module.exports = {
         }
         return { error: 'couldn\'t sign in' };
     },
+    // a Session on the server that the master vouches for from the bot's sign-in there, as the bot answers no server's challenge
     async signin(server) {
-        const auth = this.bot.config.auth;
-        const chal = await this.request(server, '/auth', { name: auth.handle });
-        if (chal.status !== 200 || !chal.json || !chal.json.challenge) return `couldn't sign in (${chal.error || chal.status})`;
-        const answer = this.answer(auth.privkey, chal.json.challenge);
-        if (!answer) return 'couldn\'t answer the server\'s challenge';
-        const done = await this.request(server, '/auth', { id: chal.json.id, answer });
-        if (done.status !== 200 || !done.json || !done.json.token) return `couldn't sign in (${done.error || done.status})`;
-        server.token = done.json.token;
+        const res = await global.accounts.mastersession(server.info.host, server.info.port);
+        if (res.status !== 200 || !res.json || !res.json.token) return `couldn't sign in (${res.error || res.status})`;
+        server.token = res.json.token;
         server.tokenused = Date.now();
         // a minute short of it, as the server's clock for it starts before ours; without one, the 401 says when
-        const life = (Number(done.json.expires) || 0) * 1000;
+        const life = (Number(res.json.expires) || 0) * 1000;
         server.tokenlife = life > 0 ? Math.max(life - 60000, life / 2) : Infinity;
-        global.log.out(`Bridge: signed in to ${server.key} as ${done.json.name} (${done.json.privilege})`);
+        global.log.out(`Bridge: signed in to ${server.key} as ${res.json.name} (${res.json.privilege})`);
         return null;
     },
     async request(server, path, body, token) {

@@ -143,25 +143,13 @@ module.exports = {
     // Signed in with the bridge's account on the master itself, so the live list carries the queue's entries and takes
     // members' places; without that it still shows the counts
     async signin() {
-        const auth = this.bot.config.auth;
-        const post = async body => {
-            const res = await fetch(`${this.master}/api/v1/auth`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(10000) });
-            return { status: res.status, json: await res.json().catch(() => null) };
-        };
-        try {
-            const chal = await post({ name: auth.handle });
-            if (chal.status !== 200 || !chal.json || !chal.json.challenge) throw new Error(`challenge refused (${chal.status})`);
-            const answer = global.bridge.answer(auth.privkey, chal.json.challenge);
-            if (!answer) throw new Error('couldn\'t answer the challenge');
-            const done = await post({ id: chal.json.id, answer });
-            if (done.status !== 200 || !done.json || !done.json.token) throw new Error(`answer refused (${done.status})`);
-            global.log.out(`Matchmaking: signed in to the master as ${done.json.name} (${done.json.privilege})`);
-            return done.json.token;
+        const res = global.accounts ? await global.accounts.mastersession() : { status: 0, error: 'accounts aren\'t set up' };
+        if (res.status === 200 && res.json && res.json.token) {
+            global.log.out(`Matchmaking: signed in to the master as ${res.json.name} (${res.json.privilege})`);
+            return res.json.token;
         }
-        catch (e) {
-            global.log.warn(`Matchmaking: couldn't sign in to the master, showing the queue without taking places: ${e.message}`);
-            return null;
-        }
+        global.log.warn(`Matchmaking: couldn't sign in to the master, showing the queue without taking places: ${res.error || res.status}`);
+        return null;
     },
     async connect() {
         if (this.stopped) return;

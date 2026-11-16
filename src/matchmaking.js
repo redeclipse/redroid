@@ -237,19 +237,18 @@ module.exports = {
     people(server) {
         return server.status && Array.isArray(server.status.players) ? server.status.players.length : 0;
     },
-    // A server as its name, linked to its bounce link, over what it's playing, with its mode's and mutators' icons, and how full
-    // it is; a name's brackets go, as Discord shows a link's escaped brackets as they are
+    // A server as its name, linked to its bounce link, over what it's playing as its mode's and mutators' icons alone (the
+    // mode's name only when there are no icon emoji), and how full it is; a name's brackets go, as Discord shows a link's
+    // escaped brackets as they are
     serverlines(server) {
         const name = escapeMarkdown(this.plain(server.description) || `${server.host}:${server.port}`).replace(/[[\]]/g, '');
         const st = server.status;
-        const details = [];
-        if (st) {
-            const mode = global.modes.name(st);
-            if (mode) details.push(`${global.modes.icons(st)}${mode}`);
-            details.push(`${this.people(server)}/${st.maxplayers} playing`);
-            if (Array.isArray(st.build) && st.build.length >= 3) details.push(`v${st.build.slice(0, 3).join('.')}${server.channel ? ` ${server.channel}` : ''}`);
-        }
-        return `**[${name}](<${this.bounce(server)}>)**` + (details.length ? `\n${details.join(', ')}` : '');
+        if (!st) return `**[${name}](<${this.bounce(server)}>)**`;
+        const icons = global.modes.icons(st), details = [];
+        if (!icons && global.modes.name(st)) details.push(global.modes.name(st));
+        details.push(`${this.people(server)}/${st.maxplayers} playing`);
+        if (Array.isArray(st.build) && st.build.length >= 3) details.push(`v${st.build.slice(0, 3).join('.')}${server.channel ? ` ${server.channel}` : ''}`);
+        return `**[${name}](<${this.bounce(server)}>)**\n${icons}${details.join(', ')}`;
     },
     // only the servers the queue sends people to, which the master marks with their channel
     listembed() {
@@ -326,7 +325,7 @@ module.exports = {
             description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes. ' +
                 `Queuing needs a Red Eclipse account linked with \`/link\`, [registered in the game or on the website](<${this.config.account}>).` +
                 (this.bot.config.channels.findplayers ? ` <#${this.bot.config.channels.findplayers}> shows who joins or leaves the queue and the servers.` : '') +
-                (this.config.role ? ' Members mention @Matchmaking when they want more players: Get @Matchmaking Pings to hear them, and Stop @Matchmaking Pings to stop.' : '') +
+                (this.config.role ? ` Members mention <@&${this.config.role}> when they want more players: Get Matchmaking Pings to hear them, and Stop Matchmaking Pings to stop.` : '') +
                 '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
             color: this.config.colour
         };
@@ -336,16 +335,16 @@ module.exports = {
             const b = new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style), emoji = global.emoji.get(icon);
             return emoji ? b.setEmoji(emoji) : b;
         };
-        if (channels.length) top.addComponents(button('matchmaking 0 leave', 'Leave Queue', ButtonStyle.Danger));
+        if (channels.length) top.addComponents(button('matchmaking 0 leave', 'Leave Queue', ButtonStyle.Danger, 'dead'));
         if (this.config.role) {
             top.addComponents(
-                button('matchmaking 0 notify', 'Get @Matchmaking Pings', ButtonStyle.Secondary, 'alert'),
-                button('matchmaking 0 stop', 'Stop @Matchmaking Pings', ButtonStyle.Secondary, 'warning'));
+                button('matchmaking 0 notify', 'Get Matchmaking Pings', ButtonStyle.Primary, 'alert'),
+                button('matchmaking 0 stop', 'Stop Matchmaking Pings', ButtonStyle.Primary, 'warning'));
         }
         if (top.components.length) rows.push(top);
         for (const c of channels.slice(0, 4)) {
             rows.push(new ActionRowBuilder().addComponents(...thresholds.map(t => new ButtonBuilder()
-                .setCustomId(`matchmaking ${c.name}:${t} join`).setLabel(channels.length > 1 ? `${c.name} ${t}+` : `${t}+`).setStyle(ButtonStyle.Primary))));
+                .setCustomId(`matchmaking ${c.name}:${t} join`).setLabel(channels.length > 1 ? `${c.name} ${t}+ players` : `${t}+ players`).setStyle(ButtonStyle.Success))));
         }
         return { embeds: [embed], components: rows };
     },
@@ -403,15 +402,15 @@ module.exports = {
         return `${icon ? `${icon} ` : ''}${who}`;
     },
 
-    // Get @Matchmaking Pings and Stop @Matchmaking Pings give and take the role members mention when they want more players;
+    // Get Matchmaking Pings and Stop Matchmaking Pings give and take the role members mention when they want more players;
     // one without a linked account hears how to get one, as they can't queue when the ping comes
     async notify(member, on) {
         const role = this.config.role;
         if (!role) return '@Matchmaking pings aren\'t set up here.';
         if (member.roles.cache.has(role) === on) return on ? 'You already get @Matchmaking pings.' : 'You don\'t get @Matchmaking pings.';
         try {
-            if (on) await member.roles.add(role, 'Matchmaking: Get @Matchmaking Pings');
-            else await member.roles.remove(role, 'Matchmaking: Stop @Matchmaking Pings');
+            if (on) await member.roles.add(role, 'Matchmaking: Get Matchmaking Pings');
+            else await member.roles.remove(role, 'Matchmaking: Stop Matchmaking Pings');
         }
         catch (err) {
             global.log.warn(`Matchmaking: couldn't ${on ? 'give' : 'take'} the role ${on ? 'to' : 'from'} ${member.user.tag}: ${err.message}`);

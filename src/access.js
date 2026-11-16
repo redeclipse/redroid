@@ -5,7 +5,7 @@ module.exports = {
     // unless users sets theirs; Discord roles count for nothing, as anyone with Manage Roles could make one of any name
     config: { users: {}, privileges: {} },
     guildid: null,
-    account: null, // the website's account page, for those with no account linked
+    account: null, // the website's page for registering an account, for those with no account linked
     start(bot) {
         this.guildid = bot.config.guildId;
         this.config = Object.assign({ users: {}, privileges: {} }, bot.config.access);

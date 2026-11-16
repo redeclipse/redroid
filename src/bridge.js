@@ -600,7 +600,7 @@ module.exports = {
             ['none', 'player account', 'global supporter', 'global moderator', 'global administrator', 'project developer', 'project founder'],
             ['none', 'player account', 'local supporter', 'local moderator', 'local administrator']
         ];
-        const priv = privs.indexOf(String(client.privilege).toLowerCase());
+        const word = String(client.privilege).toLowerCase(), priv = privs.indexOf(word === 'creator' ? 'founder' : word); // servers from before the rename say creator
         if (client.bot || priv <= privs.indexOf(minpriv)) return '';
         const row = names[client.local ? 1 : 0];
         return row[Math.min(priv, row.length - 1)];

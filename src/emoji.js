@@ -95,6 +95,7 @@ module.exports = {
     privilege(privilege, local) {
         const privs = ['none', 'player', 'supporter', 'moderator', 'administrator', 'developer', 'founder'], locals = ['supporter', 'moderator', 'administrator'];
         let priv = String(privilege || '').toLowerCase();
+        if (priv === 'creator') priv = 'founder'; // servers and masters from before the top Privilege's rename
         if (!privs.includes(priv)) priv = 'none';
         return local && locals.includes(priv) ? `local${priv}` : priv;
     }

@@ -380,7 +380,7 @@ module.exports = {
         const channels = this.channels().length > 1;
         for (const e of entries) {
             if (known.has(e.handle)) continue;
-            global.post.findplayers(`${this.who(e)} joined the Matchmaking Queue for a ${channels && e.channel ? `${e.channel} ` : ''}${e.threshold}+ match ([join the queue](<${this.threadurl()}>))`);
+            global.post.findplayers(`${this.who(e)} joined the ${this.threadurl()} Queue for a ${channels && e.channel ? `${e.channel} ` : ''}${e.threshold}+ match`);
         }
     },
     // and who left it, themselves, by running out of time or by not joining the match they were sent to; one who arrived
@@ -390,7 +390,7 @@ module.exports = {
         if (!(msg.reason in why) || !msg.handle) return;
         const e = this.queue && Array.isArray(this.queue.entries) ? this.queue.entries.find(x => x.handle === msg.handle) : null;
         if (this.known) this.known.delete(msg.handle);
-        global.post.findplayers(`${this.who(e || { handle: msg.handle })} left the Matchmaking Queue${why[msg.reason]}`);
+        global.post.findplayers(`${this.who(e || { handle: msg.handle })} left the ${this.threadurl()} Queue${why[msg.reason]}`);
     },
     threadurl() {
         return `https://discord.com/channels/${this.bot.config.guildId}/${this.data.thread}`;

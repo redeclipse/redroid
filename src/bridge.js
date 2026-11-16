@@ -418,12 +418,10 @@ module.exports = {
     escape(str) {
         return escapeMarkdown(str, { heading: true, bulletedList: true, numberedList: true, maskedLink: true }).replace(/^(-#|>)/, '\\$1');
     },
-    // A server's name in bold, linked to its thread once it has one; the name's brackets go, as Discord shows a link's escaped
-    // brackets as they are
+    // A server's thread as a bare link, which Discord shows as the thread under its own name, or its name in bold until it has one
     threadlink(server) {
-        const name = `**${this.escape(this.threadname(server.info)).replace(/[[\]]/g, '')}**`;
         const id = this.data.threads[server.key];
-        return id ? `[${name}](<https://discord.com/channels/${this.bot.config.guildId}/${id}>)` : name;
+        return id ? `https://discord.com/channels/${this.bot.config.guildId}/${id}` : `**${this.escape(this.threadname(server.info))}**`;
     },
     threadname(info) {
         const desc = info ? this.plain(info.description) : '';

@@ -1,6 +1,6 @@
-// Red Eclipse accounts on the master: linking a member's Discord account to theirs with a code they got from the account
-// page or the game, and unlinking it. Signs in with the bridge's account, whose standing the master's bot routes need,
-// and gives the bridge and matchmaking their Sessions from that sign-in
+// Red Eclipse accounts on the master: which account a member linked their Discord account to, which they do on the
+// website's account page. Signs in with the bridge's account, whose standing the master's bot route needs, and gives the
+// bridge and matchmaking their Sessions from that sign-in
 const crypto = require('crypto');
 
 module.exports = {
@@ -114,10 +114,11 @@ module.exports = {
         return known ? known.account : null;
     },
 
-    // the account a member linked, { handle, privilege }, or null; asked of the master at most once every config.accounts.cache
+    // the account a member linked, { handle, privilege }, or null; asked of the master at most once every config.accounts.cache,
+    // or config.accounts.missing while they have none, as they link on the website without the bot hearing of it
     async lookup(user) {
         const known = this.linked.get(user);
-        if (known && Date.now() - known.at < this.config.cache) return known.account;
+        if (known && Date.now() - known.at < (known.account ? this.config.cache : this.config.missing)) return known.account;
         let account = known ? known.account : null;
         try {
             const res = await this.request('GET', `/api/v1/accounts/discord/${user}`);
@@ -130,20 +131,5 @@ module.exports = {
         if (this.linked.size > 10000) this.linked.clear();
         this.linked.set(user, { at: Date.now(), account });
         return account;
-    },
-
-    async link(user, name, code) {
-        const res = await this.request('POST', '/api/v1/accounts/discord/link', { code: code.trim(), discord: user, name });
-        this.linked.delete(user);
-        if (res.status === 200 && res.json) return res.json;
-        throw (res.json && res.json.error) ? `The master server said: ${res.json.error}.` : `The master server answered ${res.status}.`;
-    },
-
-    async unlink(user) {
-        const res = await this.request('DELETE', `/api/v1/accounts/discord/${user}`);
-        this.linked.delete(user);
-        if (res.status === 204) return true;
-        if (res.status === 404) return false;
-        throw (res.json && res.json.error) ? `The master server said: ${res.json.error}.` : `The master server answered ${res.status}.`;
     }
 };

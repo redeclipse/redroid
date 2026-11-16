@@ -316,14 +316,14 @@ module.exports = {
     },
     // How someone without a linked account gets one, for the queue message and the reply to their button
     accounthelp() {
-        return `You need a Red Eclipse account to queue. Register one on the Account page of the game's Player menu or at <${this.config.account}>, then link it here with \`/link\` and the code it gives you. Already have an account? Just \`/link\` it.`;
+        return `You need a Red Eclipse account to queue. Register one on the Account page of the game's Player menu or at <${this.config.account}>, then sign in at <${this.config.profile}> and press Link with Discord.`;
     },
     queuemessage() {
         const waiting = this.waitinglines();
         const embed = {
             title: 'Matchmaking Queue',
             description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes. ' +
-                `Queuing needs a Red Eclipse account linked with \`/link\`, [registered in the game or on the website](<${this.config.account}>).` +
+                `Queuing needs a Red Eclipse account, [registered in the game or on the website](<${this.config.account}>) and [linked to Discord on the website](<${this.config.profile}>).` +
                 (this.bot.config.channels.findplayers ? ` <#${this.bot.config.channels.findplayers}> shows who joins or leaves the queue and the servers.` : '') +
                 (this.config.role ? ` Members mention <@&${this.config.role}> when they want more players: Get Matchmaking Pings to hear them, and Stop Matchmaking Pings to stop.` : '') +
                 '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),

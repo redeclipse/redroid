@@ -38,6 +38,7 @@
     "accounts": {
         "session": 1200000,
         "cache": 600000,
+        "missing": 30000,
         "timeout": 10000
     },
     "tools": {
@@ -112,6 +113,7 @@
         "shown": 12,
         "browser": "https://www.redeclipse.net/servers",
         "account": "https://www.redeclipse.net/account/register",
+        "profile": "https://www.redeclipse.net/account/profile",
         "colour": 13378082
     },
     "audit": {

@@ -1,6 +1,6 @@
 const { RESTJSONErrorCodes } = require('discord.js');
 
-// The bot's own posts to its channels, log entries, audit embeds and notices, each channel taking them in turn under Discord's
+// The bot's own posts to its channels, log entries, audit embeds, notices and find players lines, each channel taking them in turn under Discord's
 // 5 posts every 5 seconds: notices waiting together are merged and never lost, audit embeds waiting together are packed up to
 // 10 per post, identical log entries waiting together are counted, and log or audit entries past the backlog are dropped, oldest first
 // What Discord allows, which no setting changes: characters in a post, in an embed's description, embeds per post, and total embed characters per post
@@ -48,6 +48,19 @@ module.exports = {
         if (!line) return;
         const text = `${notice.icon && global.emoji ? global.emoji.icons(notice.icon) : ''}${notice.text}`;
         line.items.push({ kind: 'notice', ...notice, text });
+        this.pump(line);
+    },
+    // A line for the find players channel, about the Matchmaking Queue or someone joining or leaving a server; lines waiting
+    // together go in one post, they never mention anyone, and past the backlog the oldest are dropped
+    findplayers(text) {
+        const line = this.line(this.bot && this.bot.config.channels.findplayers);
+        if (!line) return;
+        line.items.push({ kind: 'find', text });
+        const finds = line.items.filter(o => o.kind === 'find');
+        if (finds.length > this.config.backlog) {
+            line.items.splice(line.items.indexOf(finds[0]), 1);
+            line.dropped++;
+        }
         this.pump(line);
     },
     // An audit embed for the audit channel
@@ -103,7 +116,7 @@ module.exports = {
             const item = this.take(line);
             line.sent.push(Date.now());
             try {
-                const sent = await chan.send({ content: item.content, embeds: item.embeds });
+                const sent = await chan.send({ content: item.content, embeds: item.embeds, allowedMentions: item.allowedMentions });
                 if (item.react) await global.tools.react(sent, item.react).catch(err => global.log.out(`Post: couldn't react in ${chan.name}: ${err.message}`));
             }
             catch (err) {
@@ -151,6 +164,21 @@ module.exports = {
                 line.dropped = 0;
             }
             return { content, embeds };
+        }
+        if (head.kind === 'find') {
+            const texts = [];
+            if (line.dropped) {
+                texts.push(`*${line.dropped} ${line.dropped === 1 ? 'line was' : 'lines were'} dropped to keep up.*`);
+                line.dropped = 0;
+            }
+            texts.push(head.text.slice(0, DISCORD_POSTSIZE));
+            let size = texts.join('\n').length;
+            while (line.items.length && line.items[0].kind === 'find' && size + 1 + line.items[0].text.length <= DISCORD_POSTSIZE) {
+                const o = line.items.shift();
+                texts.push(o.text);
+                size += 1 + o.text.length;
+            }
+            return { content: texts.join('\n'), allowedMentions: { parse: [] } };
         }
         const texts = [head.text];
         let size = head.text.length;

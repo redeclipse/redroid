@@ -418,6 +418,13 @@ module.exports = {
     escape(str) {
         return escapeMarkdown(str, { heading: true, bulletedList: true, numberedList: true, maskedLink: true }).replace(/^(-#|>)/, '\\$1');
     },
+    // A server's name in bold, linked to its thread once it has one; the name's brackets go, as Discord shows a link's escaped
+    // brackets as they are
+    threadlink(server) {
+        const name = `**${this.escape(this.threadname(server.info)).replace(/[[\]]/g, '')}**`;
+        const id = this.data.threads[server.key];
+        return id ? `[${name}](<https://discord.com/channels/${this.bot.config.guildId}/${id}>)` : name;
+    },
     threadname(info) {
         const desc = info ? this.plain(info.description) : '';
         return (desc || (info ? this.key(info) : '')).slice(0, 100);
@@ -515,6 +522,9 @@ module.exports = {
                 const handle = standing ? ` (${standing}${account})` : '';
                 const join = msg.event === 'join' ? ` [Join them](<${this.bounce(server)}>)` : '';
                 this.post({ server, kind: 'line', create: true, content: `${this.icon(client)}**${name}**${handle} ${msg.event === 'join' ? 'joined' : 'left'}${reason}${count}${join}` });
+                // and the find players channel, naming the server, linked to its thread
+                const where = ` ${msg.event === 'join' ? 'joined' : 'left'} ${this.threadlink(server)}`;
+                global.post.findplayers(`${this.icon(client)}**${name}**${handle}${where}${reason}${count}${msg.event === 'join' ? ` ([Join them](<${this.bounce(server)}>))` : ''}`);
                 return;
             }
             case 'identify': {

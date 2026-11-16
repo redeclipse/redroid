@@ -21,13 +21,13 @@ module.exports = {
     token: null,
     stopped: false,
     timers: new Set(),
-    data: { thread: null, list: null, queue: null, pings: [], lastping: 0, reminders: {} }, // pings: { id, key } with key channel:Threshold
+    data: { thread: null, list: null, queue: null, reminders: {} },
     servers: new Map(), // host:port -> the master's listing
     queue: null, // the master's last queue event's queue, with its entries
+    known: null, // handles in the last queue event since connecting, to tell who's new; null until the first
     waiting: new Map(), // Discord ID -> the button waiting to hear the master's answer
     lastlist: '',
     lastqueue: '',
-    pinged: new Set(), // Thresholds already pinged for since the queue last emptied
 
     start(bot) {
         const auth = bot.config.auth || {};
@@ -42,8 +42,6 @@ module.exports = {
         this.master = auth.master.replace(/\/+$/, '');
         const parsed = tools.readjson(this.config.file);
         if (parsed) this.data = Object.assign(this.data, parsed);
-        // pings kept as bare ids are from before they had keys, so the next check takes them down
-        this.data.pings = this.data.pings.map(p => typeof p === 'string' ? { id: p, key: '' } : p);
         bot.once(Events.ClientReady, () => this.ready().catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         bot.on(Events.ThreadUpdate, (before, after) => this.threadupdate(after).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
         bot.on(Events.MessageCreate, message => this.message(message).catch(err => global.log.error(`Matchmaking: ${err.stack || err}`)));
@@ -95,6 +93,13 @@ module.exports = {
             await this.thread.pin().catch(err => global.log.warn(`Matchmaking: couldn't pin the thread: ${err.message}`));
         }
         if (this.thread.archived) await this.thread.setArchived(false);
+        // @Matchmaking pings the bot sent before it stopped sending them
+        if (Array.isArray(this.data.pings)) {
+            for (const p of this.data.pings) await this.thread.messages.delete(typeof p === 'string' ? p : p.id).catch(() => null);
+            delete this.data.pings;
+            delete this.data.lastping;
+            this.save();
+        }
         let queuemsg = this.data.queue ? await this.thread.messages.fetch(this.data.queue).catch(() => null) : null;
         if (!queuemsg) {
             queuemsg = await this.thread.send(this.queuemessage());
@@ -107,11 +112,11 @@ module.exports = {
         await this.editqueue();
     },
     // The thread only holds the queue, so anything else said there goes, with a note that deletes itself saying where to talk,
-    // as even someone who may post there needn't know it isn't for talking
+    // as even someone who may post there needn't know it isn't for talking; the note names them without mentioning them
     async message(message) {
         if (!this.thread || message.channelId !== this.thread.id || message.author.id === this.bot.user.id || message.system) return;
         await message.delete().catch(err => global.log.warn(`Matchmaking: couldn't delete a message in the thread: ${err.message}`));
-        const note = await this.thread.send({ content: `<@${message.author.id}> this thread only holds the queue, so your message was removed. Talk about a match in its server's thread.`, allowedMentions: { users: [message.author.id] } }).catch(() => null);
+        const note = await this.thread.send({ content: `<@${message.author.id}> this thread only holds the queue, so your message was removed. Talk about a match in its server's thread.`, allowedMentions: { parse: [] } }).catch(() => null);
         if (note) this.later(this.config.notewait, () => note.delete().catch(() => null));
     },
     // Discord archives a quiet thread, which would take it off the top of the forum
@@ -151,6 +156,7 @@ module.exports = {
         ws.addEventListener('close', () => {
             if (this.live !== ws || this.stopped) return;
             this.live = null;
+            this.known = null;
             this.later(this.config.retry, () => this.connect());
         });
         ws.addEventListener('error', () => ws.close());
@@ -176,7 +182,7 @@ module.exports = {
             case 'queue':
                 this.queue = msg.queue || null;
                 this.queuechanged();
-                await this.pings();
+                this.joined();
                 break;
             case 'queued': case 'unqueued': {
                 const waiter = msg.discord && this.waiting.get(msg.discord);
@@ -184,7 +190,10 @@ module.exports = {
                     this.waiting.delete(msg.discord);
                     waiter(msg);
                 }
-                if (msg.event === 'unqueued' && msg.discord) await this.unremind(msg.discord);
+                if (msg.event === 'unqueued') {
+                    this.left(msg);
+                    if (msg.discord) await this.unremind(msg.discord);
+                }
                 break;
             }
             case 'pop':
@@ -296,11 +305,9 @@ module.exports = {
         const lines = [];
         let size = 0, i = 0;
         for (; i < entries.length; i++) {
-            const e = entries[i], name = this.plain(e.displayname || '');
-            const icon = global.emoji.get(global.emoji.privilege(e.privilege)) || (e.privilege ? `(${e.privilege})` : '');
-            const who = name ? `**${escapeMarkdown(name)}** (${escapeMarkdown(e.handle)})` : `**${escapeMarkdown(e.handle)}**`;
+            const e = entries[i];
             const where = e.state === 'held' ? ', on a server' : e.state === 'travelling' ? ', on the way' : '';
-            const line = `${icon ? `${icon} ` : ''}${who} ${channels ? `${e.channel} ` : ''}${e.threshold}+${where}`;
+            const line = `${this.who(e)} ${channels ? `${e.channel} ` : ''}${e.threshold}+${where}`;
             if (size + line.length + 1 > LISTROOM) break;
             lines.push(line);
             size += line.length + 1;
@@ -318,23 +325,28 @@ module.exports = {
             title: 'Matchmaking Queue',
             description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes. ' +
                 `Queuing needs a Red Eclipse account linked with \`/link\`, [registered in the game or on the website](<${this.config.account}>).` +
-                (this.config.role ? ' Get Pings mentions you here when one more player would make a match, and Stop Pings ends that.' : '') + '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
+                (this.bot.config.channels.findplayers ? ` <#${this.bot.config.channels.findplayers}> shows who joins or leaves the queue and the servers.` : '') +
+                (this.config.role ? ' Members mention @Matchmaking when they want more players: Get @Matchmaking Pings to hear them, and Stop @Matchmaking Pings to stop.' : '') +
+                '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
             color: this.config.colour
         };
-        // a row of sizes for each channel, named when there's more than one, then Leave Queue and the pings in a row of their own
-        const channels = this.channels(), rows = [];
+        // Leave Queue and the pings in a row of their own, then a row of sizes for each channel, named when there's more than one
+        const channels = this.channels(), rows = [], top = new ActionRowBuilder();
+        const button = (id, label, style, icon) => {
+            const b = new ButtonBuilder().setCustomId(id).setLabel(label).setStyle(style), emoji = global.emoji.get(icon);
+            return emoji ? b.setEmoji(emoji) : b;
+        };
+        if (channels.length) top.addComponents(button('matchmaking 0 leave', 'Leave Queue', ButtonStyle.Danger));
+        if (this.config.role) {
+            top.addComponents(
+                button('matchmaking 0 notify', 'Get @Matchmaking Pings', ButtonStyle.Secondary, 'alert'),
+                button('matchmaking 0 stop', 'Stop @Matchmaking Pings', ButtonStyle.Secondary, 'warning'));
+        }
+        if (top.components.length) rows.push(top);
         for (const c of channels.slice(0, 4)) {
             rows.push(new ActionRowBuilder().addComponents(...thresholds.map(t => new ButtonBuilder()
                 .setCustomId(`matchmaking ${c.name}:${t} join`).setLabel(channels.length > 1 ? `${c.name} ${t}+` : `${t}+`).setStyle(ButtonStyle.Primary))));
         }
-        const last = new ActionRowBuilder();
-        if (rows.length) last.addComponents(new ButtonBuilder().setCustomId('matchmaking 0 leave').setLabel('Leave Queue').setStyle(ButtonStyle.Secondary));
-        if (this.config.role) {
-            last.addComponents(
-                new ButtonBuilder().setCustomId('matchmaking 0 notify').setLabel('Get Pings').setStyle(ButtonStyle.Secondary),
-                new ButtonBuilder().setCustomId('matchmaking 0 stop').setLabel('Stop Pings').setStyle(ButtonStyle.Secondary));
-        }
-        if (last.components.length) rows.push(last);
         return { embeds: [embed], components: rows };
     },
     queuechanged() {
@@ -358,54 +370,56 @@ module.exports = {
         this.lastqueue = counts;
     },
 
-    // @Matchmaking hears when one more would make a match, once for each Threshold until the queue empties: as soon as
-    // pinggapbig allows when pingbig or more are waiting in that channel, held ones included, and only after pinggap otherwise;
-    // each ping goes as soon as it's no longer true
-    async pings() {
-        const q = this.queue;
-        if (!this.thread || !q) return;
-        const key = c => `${c.name}:${c.next.threshold}`;
-        const near = this.channels().filter(c => c.next && c.next.needed === 1), live = new Set(near.map(key));
-        const stale = this.data.pings.filter(p => !live.has(p.key));
-        if (stale.length) {
-            this.data.pings = this.data.pings.filter(p => live.has(p.key));
-            this.save();
-            for (const p of stale) await this.thread.messages.delete(p.id).catch(() => null);
+    // The find players channel hears who joined the queue, found as handles new since the last queue event, which says nobody
+    // joined for the first one after connecting; a change of match size says nothing
+    joined() {
+        const entries = this.queue && Array.isArray(this.queue.entries) ? this.queue.entries : [];
+        const known = this.known;
+        this.known = new Set(entries.map(e => e.handle));
+        if (!known) return;
+        const channels = this.channels().length > 1;
+        for (const e of entries) {
+            if (known.has(e.handle)) continue;
+            global.post.findplayers(`${this.who(e)} joined the Matchmaking Queue for a ${channels && e.channel ? `${e.channel} ` : ''}${e.threshold}+ match ([join the queue](<${this.threadurl()}>))`);
         }
-        if (!q.ready) {
-            this.pinged.clear();
-            return;
-        }
-        if (!this.config.role) return;
-        const since = Date.now() - (this.data.lastping || 0);
-        const big = c => (c.ready || 0) + (c.held || 0) >= this.config.pingbig;
-        const c = near.find(x => !this.pinged.has(key(x)) && since >= (big(x) ? this.config.pinggapbig : this.config.pinggap));
-        if (!c) return;
-        this.pinged.add(key(c));
-        this.data.lastping = Date.now();
-        this.save();
-        const sent = await this.thread.send({ content: `<@&${this.config.role}> one more ${this.channelname(c)} player would make a ${c.next.threshold}+ match. Join the queue above.`, allowedMentions: { roles: [this.config.role] } });
-        this.data.pings.push({ id: sent.id, key: key(c) });
-        this.save();
+    },
+    // and who left it, themselves, by running out of time or by not joining the match they were sent to; one who arrived
+    // or was satisfied has a server's join line instead, and the rest are housekeeping
+    left(msg) {
+        const why = { left: '', expired: ' (timed out)', popped: ' (didn\'t join their match)' };
+        if (!(msg.reason in why) || !msg.handle) return;
+        const e = this.queue && Array.isArray(this.queue.entries) ? this.queue.entries.find(x => x.handle === msg.handle) : null;
+        if (this.known) this.known.delete(msg.handle);
+        global.post.findplayers(`${this.who(e || { handle: msg.handle })} left the Matchmaking Queue${why[msg.reason]}`);
+    },
+    threadurl() {
+        return `https://discord.com/channels/${this.bot.config.guildId}/${this.data.thread}`;
+    },
+    // Someone in the queue as the game shows them: their Privilege's icon, then display name and handle, or the handle alone
+    who(e) {
+        const name = this.plain(e.displayname || '');
+        const icon = global.emoji.get(global.emoji.privilege(e.privilege)) || (e.privilege ? `(${e.privilege})` : '');
+        const who = name ? `**${escapeMarkdown(name)}** (${escapeMarkdown(e.handle)})` : `**${escapeMarkdown(e.handle)}**`;
+        return `${icon ? `${icon} ` : ''}${who}`;
     },
 
-    // Get Pings and Stop Pings give and take the role the pings mention; one without a linked account hears how to get one,
-    // as they can't queue when the ping comes
+    // Get @Matchmaking Pings and Stop @Matchmaking Pings give and take the role members mention when they want more players;
+    // one without a linked account hears how to get one, as they can't queue when the ping comes
     async notify(member, on) {
         const role = this.config.role;
-        if (!role) return 'Match pings aren\'t set up here.';
-        if (member.roles.cache.has(role) === on) return on ? 'You already get pings when one more would make a match.' : 'You don\'t get pings for matches.';
+        if (!role) return '@Matchmaking pings aren\'t set up here.';
+        if (member.roles.cache.has(role) === on) return on ? 'You already get @Matchmaking pings.' : 'You don\'t get @Matchmaking pings.';
         try {
-            if (on) await member.roles.add(role, 'Matchmaking: Get Pings');
-            else await member.roles.remove(role, 'Matchmaking: Stop Pings');
+            if (on) await member.roles.add(role, 'Matchmaking: Get @Matchmaking Pings');
+            else await member.roles.remove(role, 'Matchmaking: Stop @Matchmaking Pings');
         }
         catch (err) {
             global.log.warn(`Matchmaking: couldn't ${on ? 'give' : 'take'} the role ${on ? 'to' : 'from'} ${member.user.tag}: ${err.message}`);
             return 'Couldn\'t change that right now, so a moderator has been told.';
         }
-        if (!on) return 'You won\'t get pings for matches any more.';
+        if (!on) return 'You won\'t get @Matchmaking pings any more.';
         const linked = global.accounts && global.accounts.master ? await global.accounts.lookup(member.id) : null;
-        return 'You\'ll get a ping here when one more player would make a match.' + (linked ? '' : `\n${this.accounthelp()}`);
+        return `You'll get a ping when someone mentions @Matchmaking for more players, usually in <#${this.bot.config.channels.findplayers}>.` + (linked ? '' : `\n${this.accounthelp()}`);
     },
 
     // A place about to run out gets a mention with a button for more time, deleted once it's done its job, for every account
@@ -438,13 +452,22 @@ module.exports = {
 
     // The members a pop sent, every account in it linked to one, are mentioned in the server's own thread, which the bridge
     // makes and welcomes first if it has none, each with a join link; the master sees them arrive by their account
+    // The find players channel hears every pop, naming those it sent without mentioning them, with the size that was met
     async pop(msg) {
-        const members = (msg.entries || []).filter(e => e.discord);
-        if (!members.length) return;
+        const entries = Array.isArray(msg.entries) ? msg.entries : [];
         const server = { host: msg.host, port: msg.port };
+        const bridged = global.bridge && global.bridge.servers && global.bridge.servers.get(`${msg.host}:${msg.port}`);
+        if (entries.length) {
+            const size = Math.max(...entries.map(e => Number(e.threshold) || 0));
+            const listed = this.servers.get(`${msg.host}:${msg.port}`);
+            const where = bridged && bridged.info ? global.bridge.threadlink(bridged)
+                : `**${escapeMarkdown(this.plain(listed && listed.description) || `${msg.host}:${msg.port}`)}**`;
+            global.post.findplayers(`A ${size}+ match is ready on ${where} ([join](<${this.bounce(server)}>)): ${entries.map(e => this.who(e)).join(', ')}`);
+        }
+        const members = entries.filter(e => e.discord);
+        if (!members.length) return;
         for (const m of members) await this.unremind(m.discord);
         const content = `**Your match is ready here.** ${members.map(m => `<@${m.discord}>`).join(', ')} ([join](<${this.bounce(server)}>))`;
-        const bridged = global.bridge && global.bridge.servers && global.bridge.servers.get(`${msg.host}:${msg.port}`);
         if (bridged && global.bridge.forum) {
             global.bridge.post({ server: bridged, kind: 'mention', create: true, content, mentions: members.map(m => m.discord) });
             return;

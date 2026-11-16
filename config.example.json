@@ -11,7 +11,8 @@
         "audit": "000000000000000000",
         "moderator": "000000000000000000",
         "relay": "000000000000000000",
-        "general": "000000000000000000"
+        "general": "000000000000000000",
+        "findplayers": "000000000000000000"
     },
     "roles": {
         "alpha": "000000000000000000",
@@ -102,9 +103,6 @@
     "matchmaking": {
         "file": "./db/matchmaking.json",
         "title": "Matchmaking",
-        "pinggap": 14400000,
-        "pinggapbig": 1800000,
-        "pingbig": 3,
         "refresh": 30000,
         "queueedit": 2000,
         "remind": 300000,

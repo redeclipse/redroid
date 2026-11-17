@@ -84,8 +84,7 @@ module.exports = {
 
         const embed = {
             color: 0x8888ff,
-            title: '🤪 Gibberish',
-            description: out
+            description: `${global.emoji.icons('chat')}**Gibberish**\n${out}`
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

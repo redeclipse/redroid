@@ -474,7 +474,7 @@ module.exports = {
     async execute(bot, action) {
         const group = action.options.getSubcommandGroup();
         const sub = action.options.getSubcommand();
-        const title = `🛠️ Util: ${group} ${sub}`;
+        const title = `**Util: ${group} ${sub}**`;
         let out;
 
         switch (group) {
@@ -702,8 +702,7 @@ module.exports = {
                 await action.editReply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: title,
-                        description: out
+                        description: `${global.emoji.icons('settings')}${title}\n${out}`
                     }]
                 });
                 return;
@@ -714,8 +713,7 @@ module.exports = {
         await action.reply({
             embeds: [{
                 color: 0x8888ff,
-                title: title,
-                description: out
+                description: `${global.emoji.icons('settings')}${title}\n${out}`
             }]
         });
     },

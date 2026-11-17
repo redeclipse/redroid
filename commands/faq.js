@@ -4,12 +4,12 @@ module.exports = {
     config: {
         chat: {
             name: 'faq',
-            description: 'Search for quotable moments.',
+            description: 'Look up or search the FAQ.',
             options: [
                 {
                     type: ApplicationCommandOptionType.String,
                     name: 'target',
-                    description: 'Select target.',
+                    description: 'Select topic or target.',
                     required: false
                 },
                 {
@@ -32,7 +32,7 @@ module.exports = {
             }
         }
         const data = global.faq.query(target, str, level);
-        if (!data || !data.value || !data.value.length) {
+        if (!data || ((!data.value || !data.value.length) && (!data.matches || !Object.keys(data.matches).length))) {
             let msg = 'There are no FAQs';
             if (rawtarget) msg += ` for '${escapeMarkdown(rawtarget)}'`;
             if (str) msg += ` matching '${escapeMarkdown(str)}'`;
@@ -41,17 +41,45 @@ module.exports = {
         }
 
         global.stats.inc('faq');
+        const icon = global.emoji.icons('question');
         const embed = {
             color: 0x8888ff,
-            title: `FAQ: ${data.name}`,
-            description: `${global.emoji.icons('question')}${str ? `Searching for: ${escapeMarkdown(str)}` : 'Showing all entries'}`,
-            fields: [],
+            description: data.name
+                ? `${icon}**FAQ: ${escapeMarkdown(data.name)}**${str ? `\n*Searching for: ${escapeMarkdown(str)}*` : ''}`
+                : `${icon}**FAQ Search** — *${escapeMarkdown(str)}*`,
             footer: { text: '' }
         };
-        const result = global.tools.embedfields(embed, data.value);
-
-        if (result.more) embed.footer.text += `Results truncated, showing ${result.amount} of ${result.count} match(es).`;
-        else embed.footer.text += `There are a total of ${result.count} match(es).`;
+        if (data.matches) {
+            const keys = Object.keys(data.matches);
+            let shown = 0;
+            for (const key of keys) {
+                const line = `\n**${escapeMarkdown(key)}:** ${data.matches[key].join(' | ')}`;
+                if (embed.description.length + line.length > 4000) break;
+                embed.description += line;
+                shown++;
+            }
+            embed.footer.text = `FAQ ${shown} of ${data.total}`;
+        }
+        else if (data.value.length === 1) {
+            embed.description += `\n${data.value[0]}`;
+            embed.footer.text = `FAQ ${data.index} of ${data.total}`;
+            if (data.also && data.also.length) {
+                const extra = data.also.slice(0, 10).join(', ') + (data.also.length > 10 ? ', ...' : '');
+                embed.footer.text += ` • Also matching: ${extra}`;
+            }
+        }
+        else {
+            for (let i = 0; i < data.value.length; i++) {
+                const line = `\n**${i + 1}.** ${data.value[i]}`;
+                if (embed.description.length + line.length > 4000) break;
+                embed.description += line;
+            }
+            embed.footer.text = `FAQ ${data.index} of ${data.total}`;
+            if (data.also && data.also.length) {
+                const extra = data.also.slice(0, 10).join(', ') + (data.also.length > 10 ? ', ...' : '');
+                embed.footer.text += ` • Also matching: ${extra}`;
+            }
+        }
         await action.reply({ embeds: [embed] });
     },
 };

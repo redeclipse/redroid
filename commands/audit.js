@@ -68,8 +68,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: global.audit.config.colours.info,
-                        title: '📋 Audit Logging Status',
-                        description: this.formatstatus(bot)
+                        description: `${global.emoji.icons('notes')}**Audit Logging Status**\n${this.formatstatus(bot)}`
                     }]
                 });
                 break;
@@ -80,8 +79,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: global.audit.config.colours.info,
-                        title: added ? '🔇 Channel Ignored' : '🔊 Channel Unignored',
-                        description: `${added ? 'Now ignoring' : 'No longer ignoring'} <#${chan.id}> for message edit/delete audit logs.\n\n${this.formatstatus(bot)}`
+                        description: `${global.emoji.icons(added ? 'cross' : 'voices')}**${added ? 'Channel Ignored' : 'Channel Unignored'}**\n${added ? 'Now ignoring' : 'No longer ignoring'} <#${chan.id}> for message edit/delete audit logs.\n\n${this.formatstatus(bot)}`
                     }]
                 });
                 break;
@@ -92,8 +90,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: global.audit.config.colours.info,
-                        title: enabled ? '✅ Category Enabled' : '❌ Category Disabled',
-                        description: `Audit logging for \`${category}\` is now **${enabled ? 'enabled' : 'disabled'}**.\n\n${this.formatstatus(bot)}`
+                        description: `${global.emoji.icons(enabled ? 'tick' : 'cross')}**${enabled ? 'Category Enabled' : 'Category Disabled'}**\nAudit logging for \`${category}\` is now **${enabled ? 'enabled' : 'disabled'}**.\n\n${this.formatstatus(bot)}`
                     }]
                 });
                 break;

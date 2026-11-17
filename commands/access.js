@@ -23,8 +23,7 @@ module.exports = {
             await action.reply({
                 embeds: [{
                     color: 0x8888ff,
-                    title: '👤 Access',
-                    description: `<@${user.id}>'s level is: ${level}`
+                    description: `${global.emoji.icons('player')}**Access** — <@${user.id}>'s level is: ${level}`
                 }]
             });
         }

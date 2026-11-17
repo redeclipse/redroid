@@ -22,10 +22,10 @@ module.exports = {
         if (!this.rnd) this.reload();
         const count = global.stats.inc('roulette'), mile = global.stats.milestone(count, 'round of roulette played');
         const level = global.access.level(action.guild, action.user);
+        const icon = global.emoji.icons('pistol');
         const embed = {
             color: 0x8888ff,
-            title: '🔫 Roulette',
-            description: ''
+            description: `${icon}**Roulette**\n`
         };
         if (mile) embed.footer = { text: mile };
 
@@ -34,17 +34,17 @@ module.exports = {
             const timeoutms = global.stats.config.roulette_timeout;
             if (level >= 10) {
                 const bystander = await global.tools.randomuser(action, null);
-                embed.description = `**BANG!** The bullet missed <@${action.user.id}> and killed <@${bystander.id}> instead.\n\n*<@${bot.user.id}> reloads the gun and spins the chamber.*`;
+                embed.description += `**BANG!** The bullet missed <@${action.user.id}> and killed <@${bystander.id}> instead.\n\n*<@${bot.user.id}> reloads the gun and spins the chamber.*`;
                 await global.tools.timeoutmember(action, bystander, timeoutms, 'BANG! Killed by a stray roulette bullet.');
             }
             else {
-                embed.description = `<@${action.user.id}>: **BANG!** You're dead.\n\n*<@${bot.user.id}> reloads the gun and spins the chamber.*`;
+                embed.description += `<@${action.user.id}>: **BANG!** You're dead.\n\n*<@${bot.user.id}> reloads the gun and spins the chamber.*`;
                 await global.tools.timeoutmember(action, action.user, timeoutms, 'BANG! You lost Russian roulette.');
             }
             this.reload();
         }
         else {
-            embed.description = `<@${action.user.id}>: *Click*, you survived. Who's next? To play, type: \`/roulette\``;
+            embed.description += `<@${action.user.id}>: *Click*, you survived. Who's next? To play, type: \`/roulette\``;
             this.pos++;
             if (this.timer) clearTimeout(this.timer);
             this.timer = setTimeout(() => this.reload(), global.stats.config.roulette_reset);

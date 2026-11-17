@@ -20,8 +20,7 @@ module.exports = {
         const count = global.stats.inc('sashimi'), mile = global.stats.milestone(count, 'plate of sashimi served');
         const embed = {
             color: 0x8888ff,
-            title: '🍣 Sashimi',
-            description: `<@${bot.user.id}> expertly slices <@${user.id}> and serves them up with soy sauce and wasabi`
+            description: `🍣 **Sashimi** — <@${bot.user.id}> expertly slices <@${user.id}> and serves them up with soy sauce and wasabi`
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

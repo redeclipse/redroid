@@ -21,8 +21,7 @@ module.exports = {
         const count = global.stats.inc('oracle'), mile = global.stats.milestone(count, 'future predicted');
         const embed = {
             color: 0x8888ff,
-            title: '🎱 Oracle',
-            description: `<@${action.user.id}> asks: *${question}*\n\n`
+            description: `${global.emoji.icons('question')}**Oracle**\n<@${action.user.id}> asks: *${question}*\n\n`
         };
         if (mile) embed.footer = { text: mile };
         embed.description += `<@${bot.user.id}> `;

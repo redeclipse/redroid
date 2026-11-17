@@ -41,12 +41,13 @@ module.exports = {
 
         const count = global.stats.inc('quote'), mile = global.stats.milestone(count, 'quote to be announced');
         const speaker = global.users.display(result.name, action.guild);
+        const footer = `Quote ${result.index} of ${result.total}`;
+        const icon = global.emoji.icons('chat');
         const embed = {
             color: 0x8888ff,
-            title: '💬 Quote',
-            description: `${speaker} once said:\n`
+            description: `${icon}**Quote** — ${speaker} once said:\n`,
+            footer: { text: mile ? `${footer} • ${mile}` : footer }
         };
-        if (mile) embed.footer = { text: mile };
         embed.description += '```\n';
         if (result.value.type === 'action') embed.description += `* ${result.name} ${result.value.body}`;
         else embed.description += `<${result.name}> ${result.value.body}`;

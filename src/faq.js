@@ -70,8 +70,13 @@ module.exports = {
         else {
             const keys = Object.keys(this.faqs);
             for (const targ of keys) {
-                const values = this.faqs[targ].filter(value => value.match(regex));
-                if (values && values.length > 0) matches[targ] = values;
+                if (targ.match(regex)) {
+                    matches[targ] = this.faqs[targ];
+                }
+                else {
+                    const values = this.faqs[targ].filter(value => value.match(regex));
+                    if (values && values.length > 0) matches[targ] = values;
+                }
             }
         }
         return matches;
@@ -82,26 +87,30 @@ module.exports = {
     },
     query(target, str, level = 0) {
         let result = null;
+        const allkeys = Object.keys(this.faqs);
         if (str) {
             const values = this.search(target, str, level), keys = Object.keys(values);
             if (keys.length > 0) {
-                const numt = global.tools.rand(0, keys.length);
-                if (values[keys[numt]].length > 0) {
-                    result = { name: keys[numt], value: values[keys[numt]] };
+                if (target || keys.length === 1) {
+                    if (values[keys[0]].length > 0) result = { name: keys[0], value: values[keys[0]], index: allkeys.indexOf(keys[0]) + 1, total: allkeys.length };
+                }
+                else {
+                    const exact = str.slice(0, 1) !== '/' ? keys.find(k => k.toLowerCase() === str.toLowerCase()) : null;
+                    if (exact) result = { name: exact, value: values[exact], index: allkeys.indexOf(exact) + 1, total: allkeys.length, also: keys.filter(k => k !== exact) };
+                    else result = { name: null, matches: values, total: allkeys.length };
                 }
             }
         }
         else if (target) {
             const targ = this.findtarg(target, level);
             if (targ && this.faqs[targ] && this.faqs[targ].length > 0) {
-                result = { name: targ, value: this.faqs[targ] };
+                result = { name: targ, value: this.faqs[targ], index: allkeys.indexOf(targ) + 1, total: allkeys.length };
             }
         }
         else {
-            const keys = Object.keys(this.faqs);
-            if (!keys.length) return null; // none loaded
-            const num = global.tools.rand(0, keys.length);
-            result = { name: keys[num], value: this.lookup(keys[num]) };
+            if (!allkeys.length) return null; // none loaded
+            const num = global.tools.rand(0, allkeys.length);
+            result = { name: allkeys[num], value: this.lookup(allkeys[num]), index: num + 1, total: allkeys.length };
         }
         return result;
     },

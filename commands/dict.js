@@ -90,8 +90,7 @@ module.exports = {
                 if (list.length) {
                     const embed = {
                         color: 0x8888ff,
-                        title: `📕 Dictionary: ${word}`,
-                        description: `Searching for: **${escapeMarkdown(str)}**`,
+                        description: `${global.emoji.icons('notes')}**Dictionary: ${word}**\nSearching for: **${escapeMarkdown(str)}**`,
                         fields: [],
                         footer: { text: '' }
                     };
@@ -111,8 +110,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: `📕 Dictionary: ${word}`,
-                        description: `Added: ${ret}`
+                        description: `${global.emoji.icons('notes')}**Dictionary: ${word}**\nAdded: ${ret}`
                     }]
                 });
                 break;
@@ -122,8 +120,7 @@ module.exports = {
                 const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str, level);
                 const embed = {
                     color: 0x88ffff,
-                    title: `📕 Dictionary: ${word}`,
-                    description: 'This will remove:',
+                    description: `${global.emoji.icons('notes')}**Dictionary: ${word}**\nThis will remove:`,
                     fields: [],
                     footer: { text: '' }
                 };
@@ -198,8 +195,7 @@ module.exports = {
                 const reply = {
                     embeds: [{
                         color: 0x88ffff,
-                        title: `📕 Dictionary: ${button.word}`,
-                        description: 'ATTENTION! This will remove:',
+                        description: `${global.emoji.icons('notes')}**Dictionary: ${button.word}**\nATTENTION! This will remove:`,
                         fields: [],
                         footer: { text: '' }
                     }],

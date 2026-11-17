@@ -145,8 +145,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: `👤 User: ${escapeMarkdown(key)}`,
-                        description: this.formatentry(key, action.guild)
+                        description: `${global.emoji.icons('player')}**User: ${escapeMarkdown(key)}**\n${this.formatentry(key, action.guild)}`
                     }]
                 });
                 break;
@@ -159,8 +158,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: unlink ? '🔗 User Unlinked' : '🔗 User Linked',
-                        description: `${unlink ? 'Unlinked' : 'Linked'} <@${user.id}> ${unlink ? 'from' : 'to'} \`${escapeMarkdown(res.key)}\`.\n\n${this.formatentry(res.key, action.guild)}`
+                        description: `${global.emoji.icons(unlink ? 'cross' : 'tick')}**${unlink ? 'User Unlinked' : 'User Linked'}**\n${unlink ? 'Unlinked' : 'Linked'} <@${user.id}> ${unlink ? 'from' : 'to'} \`${escapeMarkdown(res.key)}\`.\n\n${this.formatentry(res.key, action.guild)}`
                     }]
                 });
                 break;
@@ -180,8 +178,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: remove ? '🏷️ Alias Removed' : '🏷️ Alias Added',
-                        description: `${remove ? 'Removed' : 'Added'} alias \`${escapeMarkdown(res.alias)}\` ${remove ? 'from' : 'for'} \`${escapeMarkdown(res.key)}\`.${mergeLine}\n\n${this.formatentry(res.key, action.guild)}`
+                        description: `${global.emoji.icons(remove ? 'cross' : 'tick')}**${remove ? 'Alias Removed' : 'Alias Added'}**\n${remove ? 'Removed' : 'Added'} alias \`${escapeMarkdown(res.alias)}\` ${remove ? 'from' : 'for'} \`${escapeMarkdown(res.key)}\`.${mergeLine}\n\n${this.formatentry(res.key, action.guild)}`
                     }]
                 });
                 break;
@@ -198,8 +195,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: '✏️ User Renamed',
-                        description: `Renamed \`${escapeMarkdown(res.oldkey)}\` to \`${escapeMarkdown(res.newkey)}\`.${mergeLine}\n\n${this.formatentry(res.newkey, action.guild)}`
+                        description: `${global.emoji.icons('editing')}**User Renamed**\nRenamed \`${escapeMarkdown(res.oldkey)}\` to \`${escapeMarkdown(res.newkey)}\`.${mergeLine}\n\n${this.formatentry(res.newkey, action.guild)}`
                     }]
                 });
                 break;

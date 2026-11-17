@@ -20,8 +20,7 @@ module.exports = {
         const count = global.stats.inc('lava'), mile = global.stats.milestone(count, 'lava sacrifice');
         const embed = {
             color: 0x8888ff,
-            title: '🌋 Lava',
-            description: `<@${bot.user.id}> throws <@${user.id}> into the lava and laughs maniacally with <@${action.user.id}> as they burn`
+            description: `${global.emoji.icons('burn')}**Lava** — <@${bot.user.id}> throws <@${user.id}> into the lava and laughs maniacally with <@${action.user.id}> as they burn`
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

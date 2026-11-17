@@ -20,8 +20,7 @@ module.exports = {
         const count = global.stats.inc('mud'), mile = global.stats.milestone(count, 'MUD event');
         const embed = {
             color: 0x8888ff,
-            title: '🎬 MUD',
-            description: `<@${user.id}> `
+            description: `🎬 **MUD** — <@${user.id}> `
         };
         if (mile) embed.footer = { text: mile };
         embed.description += global.dict.query('verb', action.user, user);

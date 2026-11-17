@@ -23,11 +23,12 @@ module.exports = {
         const isbot = lower.includes('redroid') || raw.includes(bot.user.id) || Boolean(resolved && resolved.id === bot.user.id);
         const display = resolved ? resolved.display : escapeMarkdown(raw);
 
+        const won = !isbot && global.tools.rand(0, 3) === global.tools.rand(0, 2);
         let desc;
         if (isbot) {
             desc = `<@${action.user.id}>: Nuh-uh, you are teh fail for even thinking I could be.`;
         }
-        else if (global.tools.rand(0, 3) === global.tools.rand(0, 2)) {
+        else if (won) {
             desc = `Nopez, ${display} seems to be teh win.`;
         }
         else {
@@ -36,8 +37,7 @@ module.exports = {
 
         const embed = {
             color: 0x8888ff,
-            title: '🏆 Fail or Win',
-            description: desc
+            description: `${global.emoji.icons(won ? 'winner' : 'cross')}**Fail or Win**\n${desc}`
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

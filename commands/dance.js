@@ -20,10 +20,9 @@ module.exports = {
         const count = global.stats.inc('dance'), mile = global.stats.milestone(count, 'dance to be performed');
         const embed = {
             color: 0x8888ff,
-            title: '💃 Dance',
-            description: user
+            description: '💃 **Dance**\n' + (user
                 ? `<@${bot.user.id}> gives <@${user.id}> a lap dance - oooh-lah-lah`
-                : `<@${bot.user.id}> dances like a jolly idiot`
+                : `<@${bot.user.id}> dances like a jolly idiot`)
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

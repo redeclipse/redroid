@@ -11,7 +11,8 @@ const ICONS = [
     'ffa', 'coop', 'instagib', 'medieval', 'kaboom', 'duel', 'survivor', 'classic', 'onslaught', 'vampire', 'resize', 'hard', 'arena', 'dark',
     'gladiator', 'oldschool', 'capturequick', 'capturedefend', 'captureprotect', 'defendquick', 'defendking',
     'bomberhold', 'bomberbasket', 'bomberassault', 'speedrunlapped', 'speedrunendurance', 'speedrungauntlet',
-    'spectator', 'dead', 'warning', 'dominated', 'alert', 'chat', 'info', 'settings', 'question'
+    'spectator', 'dead', 'warning', 'dominated', 'alert', 'chat', 'info', 'settings', 'question',
+    'tick', 'cross', 'notes', 'voices', 'attack', 'corrode', 'burn', 'pistol', 'star'
 ];
 
 module.exports = {

@@ -127,8 +127,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: '🫙 Tipjar',
-                        description: this.formatbalance(targ.key, targ.display, count)
+                        description: `${global.emoji.icons('star')}**Tipjar**\n${this.formatbalance(targ.key, targ.display, count)}`
                     }]
                 });
                 break;
@@ -156,8 +155,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: '🫙 Tipjar',
-                        description: `${act}\n\n${this.formatbalance(targ.key, targ.display, updated.value)}`
+                        description: `${global.emoji.icons('star')}**Tipjar**\n${act}\n\n${this.formatbalance(targ.key, targ.display, updated.value)}`
                     }]
                 });
                 break;
@@ -170,8 +168,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: '🫙 Tipjar',
-                        description: this.formatbalance(targ.key, targ.display, updated.value)
+                        description: `${global.emoji.icons('star')}**Tipjar**\n${this.formatbalance(targ.key, targ.display, updated.value)}`
                     }]
                 });
                 break;
@@ -181,8 +178,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        title: '💸 Refund',
-                        description: user ? `<@${user.id}>: Sorry, no refunds.` : 'Sorry, no refunds.'
+                        description: `${global.emoji.icons('cross')}**Refund**\n${user ? `<@${user.id}>: Sorry, no refunds.` : 'Sorry, no refunds.'}`
                     }]
                 });
                 break;

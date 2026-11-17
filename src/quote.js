@@ -81,24 +81,31 @@ module.exports = {
             const values = this.search(target, str, level), keys = Object.keys(values);
             if (keys.length > 0) {
                 const numt = global.tools.rand(0, keys.length);
-                if (values[keys[numt]].length > 0) {
-                    const numq = global.tools.rand(0, values[keys[numt]].length);
-                    result = { name: keys[numt], value: values[keys[numt]][numq] };
+                const key = keys[numt];
+                if (values[key].length > 0) {
+                    const numq = global.tools.rand(0, values[key].length);
+                    const value = values[key][numq];
+                    const list = this.quotes[key];
+                    result = { name: key, value, index: list.indexOf(value) + 1, total: list.length };
                 }
             }
         }
         else if (target) {
             const targ = this.findtarg(target, level);
             if (targ && this.quotes[targ] && this.quotes[targ].length > 0) {
-                const num = global.tools.rand(0, this.quotes[targ].length);
-                result = { name: targ, value: this.quotes[targ][num] };
+                const list = this.quotes[targ];
+                const num = global.tools.rand(0, list.length);
+                result = { name: targ, value: list[num], index: num + 1, total: list.length };
             }
         }
         else {
             const keys = Object.keys(this.quotes);
-            const num = global.tools.rand(0, keys.length), value = keys.length ? this.lookup(keys[num]) : undefined;
-            if (value === undefined) return null; // none loaded, or a name with no quotes left
-            result = { name: keys[num], value };
+            if (!keys.length) return null;
+            const key = keys[global.tools.rand(0, keys.length)];
+            const list = this.quotes[key];
+            if (!list || !list.length) return null; // none loaded, or a name with no quotes left
+            const num = global.tools.rand(0, list.length);
+            result = { name: key, value: list[num], index: num + 1, total: list.length };
         }
         return result;
     },

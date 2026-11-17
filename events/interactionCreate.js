@@ -45,8 +45,7 @@ module.exports = {
             if (err instanceof Error) global.log.error(`Interaction failed: ${err.stack || err}`);
             const embed = {
                 color: 0xff8888,
-                title: 'Command Failed',
-                description: `${global.emoji ? global.emoji.icons('warning') : ''}${err instanceof Error ? 'An internal error occurred.' : String(err)}`
+                description: `${global.emoji ? global.emoji.icons('warning') : ''}**Command Failed**\n${err instanceof Error ? 'An internal error occurred.' : String(err)}`
             };
             try {
                 if (action.replied || action.deferred) await action.followUp({ embeds: [embed], flags: MessageFlags.Ephemeral });

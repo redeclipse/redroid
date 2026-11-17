@@ -40,8 +40,7 @@ module.exports = {
             await action.reply({
                 embeds: [{
                     color: 0x8888ff,
-                    title: '⚖️ Judge',
-                    description: `A total of ${count} people have been killed in the name of the law.`
+                    description: `${global.emoji.icons('star')}**Judge**\nA total of ${count} people have been killed in the name of the law.`
                 }]
             });
             return;
@@ -72,8 +71,7 @@ module.exports = {
         const vs = parties.map(u => `<@${u.id}>`).join(' vs. ');
         const embed = {
             color: 0x8888ff,
-            title: '⚖️ Judge',
-            description: `${vs}\n\n<@${loser.id}>: ${reason}\n\nA total of ${count} people have been killed in the name of the law.`
+            description: `${global.emoji.icons('star')}**Judge**\n${vs}\n\n<@${loser.id}>: ${reason}\n\nA total of ${count} people have been killed in the name of the law.`
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

@@ -24,8 +24,7 @@ module.exports = {
         const count = global.stats.inc('stfu'), mile = global.stats.milestone(count, 'piece of abuse');
         const embed = {
             color: 0x8888ff,
-            title: '👿 STFU',
-            description: `<@${action.user.id}> `
+            description: `${global.emoji.icons('voices')}**STFU**\n<@${action.user.id}> `
         };
         if (mile) embed.footer = { text: mile };
         embed.description += global.dict.query('insert', action.user, user);

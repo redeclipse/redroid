@@ -20,8 +20,7 @@ module.exports = {
         const count = global.stats.inc('cookie'), mile = global.stats.milestone(count, 'batch of cookies baked');
         const embed = {
             color: 0x8888ff,
-            title: '🍪 Cookie',
-            description: `<@${bot.user.id}> chops <@${user.id}> up and makes cookies out of the pieces`
+            description: `🍪 **Cookie** — <@${bot.user.id}> chops <@${user.id}> up and makes cookies out of the pieces`
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

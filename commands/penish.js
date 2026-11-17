@@ -38,8 +38,7 @@ module.exports = {
         global.stats.inc('penish');
         const embed = {
             color: 0x8888ff,
-            title: '<:largeandincharge_1:743871161099747399><:largeandincharge_2:743871143764689067><:largeandincharge_3:743871119265759313><:largeandincharge_4:743871101393698959>',
-            description: `Measuring <@${member.user.id}>:\n`,
+            description: `<:largeandincharge_1:743871161099747399><:largeandincharge_2:743871143764689067><:largeandincharge_3:743871119265759313><:largeandincharge_4:743871101393698959> Measuring <@${member.user.id}>:\n`,
             footer: { text: '' }
         };
         embed.description += '```\n';

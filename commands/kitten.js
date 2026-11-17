@@ -40,8 +40,7 @@ module.exports = {
                 const kittens = global.stats.inc('kitten'), obits = global.stats.inc('obit');
                 const embed = {
                     color: 0x8888ff,
-                    title: '🐱 Kitten',
-                    description: 'A kitten was '
+                    description: '🐱 **Kitten** — A kitten was '
                 };
                 embed.description += global.dict.query('killed', action.user, user);
                 embed.description += ' with ';
@@ -67,8 +66,7 @@ module.exports = {
                 const zombies = global.stats.inc('zombie', 1);
                 const embed = {
                     color: 0x8888ff,
-                    title: '🧟 Kitten Revived',
-                    description: `A kitten was revived by <@${action.user.id}>, leaving ${zombies} zombies, and ${kittens} kittens killed in the name of noobs`
+                    description: `🧟 **Kitten Revived**\nA kitten was revived by <@${action.user.id}>, leaving ${zombies} zombies, and ${kittens} kittens killed in the name of noobs`
                 };
                 await action.reply({ embeds: [ embed ] });
                 break;
@@ -77,8 +75,7 @@ module.exports = {
                 const kittens = global.stats.get('kitten'), zombies = global.stats.get('zombie');
                 const embed = {
                     color: 0x8888ff,
-                    title: '🐱 Kitten Stats',
-                    description: `${kittens} kittens have been killed in the name of noobs` + (zombies ? ` (${zombies} zombies revived)` : '')
+                    description: `🐱 **Kitten Stats**\n${kittens} kittens have been killed in the name of noobs` + (zombies ? ` (${zombies} zombies revived)` : '')
                 };
                 await action.reply({ embeds: [ embed ] });
                 break;

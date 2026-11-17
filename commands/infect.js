@@ -24,8 +24,7 @@ module.exports = {
         const count = global.stats.inc('infect'), mile = global.stats.milestone(count, 'infection');
         const embed = {
             color: 0x8888ff,
-            title: '🤮 Infect',
-            description: `<@${user.id}> was `
+            description: `${global.emoji.icons('corrode')}**Infect** — <@${user.id}> was `
         };
         if (mile) embed.footer = { text: mile };
         embed.description += global.dict.query('transmit', action.user, user);

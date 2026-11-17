@@ -24,8 +24,7 @@ module.exports = {
         const count = global.stats.inc('obit'), mile = global.stats.milestone(count, 'obituary to be announced');
         const embed = {
             color: 0x8888ff,
-            title: '☠ Obituary',
-            description: `<@${user.id}> was `
+            description: `${global.emoji.icons('dead')}**Obituary** — <@${user.id}> was `
         };
         if (mile) embed.footer = { text: mile };
         embed.description += global.dict.query('killed', action.user, user);

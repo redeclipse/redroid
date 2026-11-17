@@ -9,8 +9,7 @@ module.exports = {
         const count = global.stats.get('said');
         const embed = {
             color: 0x8888ff,
-            title: '😏 That\'s What They Said',
-            description: `They've said it a total of **${count}** ${count === 1 ? 'time' : 'times'}.`
+            description: `${global.emoji.icons('voices')}**That's What They Said**\nThey've said it a total of **${count}** ${count === 1 ? 'time' : 'times'}.`
         };
         await action.reply({ embeds: [ embed ] });
     },

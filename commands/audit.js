@@ -68,7 +68,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: global.audit.config.colours.info,
-                        description: `${global.emoji.icons('notes')}**Audit Logging Status**\n${this.formatstatus(bot)}`
+                        description: `${global.emoji.icons('menu')}**Audit Logging Status**\n${this.formatstatus(bot)}`
                     }]
                 });
                 break;

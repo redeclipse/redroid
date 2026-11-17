@@ -200,9 +200,11 @@ module.exports = {
     // An audit embed, its description starting with the icon for its kind: create, update, delete or mod
     send(embed) {
         if (!global.post) return;
-        const { kind, ...rest } = embed;
+        const { kind, title, description, ...rest } = embed;
         const icon = global.emoji ? global.emoji.icons({ create: 'info', update: 'settings', delete: 'warning' }[kind] || []) : '';
-        if (icon && rest.description) rest.description = this.trunc(`${icon}${rest.description}`, DISCORD_EMBEDSIZE);
+        const header = title ? `${icon}**${title}**` : icon;
+        const body = header ? (description ? `${header}\n${description}` : header) : (description || '');
+        if (body) rest.description = this.trunc(body, DISCORD_EMBEDSIZE);
         global.post.audit(Object.assign({ timestamp: new Date().toISOString() }, rest));
     },
 

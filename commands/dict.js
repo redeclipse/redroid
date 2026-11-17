@@ -90,7 +90,7 @@ module.exports = {
                 if (list.length) {
                     const embed = {
                         color: 0x8888ff,
-                        description: `${global.emoji.icons('notes')}**Dictionary: ${word}**\nSearching for: **${escapeMarkdown(str)}**`,
+                        description: `${global.emoji.icons('menu')}**Dictionary: ${word}**\nSearching for: **${escapeMarkdown(str)}**`,
                         fields: [],
                         footer: { text: '' }
                     };
@@ -110,7 +110,7 @@ module.exports = {
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
-                        description: `${global.emoji.icons('notes')}**Dictionary: ${word}**\nAdded: ${ret}`
+                        description: `${global.emoji.icons('menu')}**Dictionary: ${word}**\nAdded: ${ret}`
                     }]
                 });
                 break;
@@ -120,7 +120,7 @@ module.exports = {
                 const word = this.getdict(action), str = action.options.getString('string'), list = global.dict.search(word, str, level);
                 const embed = {
                     color: 0x88ffff,
-                    description: `${global.emoji.icons('notes')}**Dictionary: ${word}**\nThis will remove:`,
+                    description: `${global.emoji.icons('menu')}**Dictionary: ${word}**\nThis will remove:`,
                     fields: [],
                     footer: { text: '' }
                 };
@@ -195,7 +195,7 @@ module.exports = {
                 const reply = {
                     embeds: [{
                         color: 0x88ffff,
-                        description: `${global.emoji.icons('notes')}**Dictionary: ${button.word}**\nATTENTION! This will remove:`,
+                        description: `${global.emoji.icons('menu')}**Dictionary: ${button.word}**\nATTENTION! This will remove:`,
                         fields: [],
                         footer: { text: '' }
                     }],

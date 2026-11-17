@@ -12,7 +12,7 @@ const ICONS = [
     'gladiator', 'oldschool', 'capturequick', 'capturedefend', 'captureprotect', 'defendquick', 'defendking',
     'bomberhold', 'bomberbasket', 'bomberassault', 'speedrunlapped', 'speedrunendurance', 'speedrungauntlet',
     'spectator', 'dead', 'warning', 'dominated', 'alert', 'chat', 'info', 'settings', 'question',
-    'tick', 'cross', 'notes', 'voices', 'attack', 'corrode', 'burn', 'pistol', 'star'
+    'tick', 'cross', 'menu', 'voices', 'attack', 'corrode', 'burn', 'pistol', 'star'
 ];
 
 module.exports = {

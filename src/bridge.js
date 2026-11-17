@@ -53,6 +53,10 @@ module.exports = {
         if (!tools.isobject(this.data.bounced)) this.data.bounced = {};
         bot.once(Events.ClientReady, () => this.ready().catch(err => global.log.error(`Bridge: ${err.stack || err}`)));
         bot.on(Events.MessageCreate, message => this.message(message).catch(err => global.log.error(`Bridge: ${err.stack || err}`)));
+        // a deferred answer is posted empty while the bot thinks, and filled in by an edit
+        bot.on(Events.MessageUpdate, (old, message) => {
+            if (old.flags && old.flags.has(MessageFlags.Loading) && !message.flags.has(MessageFlags.Loading)) this.commandanswer(message);
+        });
         this.watchdog = setInterval(() => this.reopenidle(), this.config.idlecheck);
         return true;
     },
@@ -619,6 +623,10 @@ module.exports = {
     // Replies in a server's thread go to that server
     async message(message) {
         if (!this.forum || !message.channel || message.channel.parentId !== this.forum.id) return;
+        if (message.author.id === this.bot.user.id) {
+            if (!message.flags.has(MessageFlags.Loading)) this.commandanswer(message);
+            return;
+        }
         if (message.author.bot || message.webhookId || message.system) return;
         await global.access.refresh(message.guild, message.author); // the sender's Privilege icon comes from their account
         if (global.access.level(message.guild, message.author) < 0) return; // blocked from the bot, so from the game too
@@ -652,6 +660,53 @@ module.exports = {
         if (linked) body.account = linked.handle;
         this.send(server, { user: message.author.id, message, body });
         this.announce(server, said);
+    },
+    // The bot's answer to a command used in a server's thread goes to its game as one line, naming who asked as a reply does
+    commandanswer(message) {
+        const meta = message.interactionMetadata;
+        if (!this.forum || !meta || !message.channel || message.channel.parentId !== this.forum.id) return;
+        if (message.flags.has(MessageFlags.Ephemeral)) return;
+        const key = Object.keys(this.data.threads).find(k => this.data.threads[k] === message.channelId);
+        const server = key && this.servers.get(key);
+        if (!server || !this.eligible(server.info)) return;
+        const text = this.flatten(message);
+        if (!text) return;
+        const member = message.guild && meta.user ? message.guild.members.resolve(meta.user.id) : null;
+        const who = (member && member.displayName) || (meta.user && (meta.user.globalName || meta.user.username));
+        this.send(server, { user: this.bot.user.id, body: { text: who ? `@${who} ${text}` : text, via: this.config.via } });
+    },
+    // A post's text and embeds as one line of plain text: a title before its description, then fields and the footer
+    flatten(message) {
+        const parts = [message.content];
+        for (const embed of message.embeds) {
+            const head = [embed.author && embed.author.name, embed.title].filter(Boolean).join(' - ');
+            const body = [embed.description, ...embed.fields.map(f => `${f.name}: ${f.value}`)].filter(Boolean).join(' ');
+            parts.push(head && body ? `${head}: ${body}` : head || body);
+            if (embed.footer && embed.footer.text) parts.push(`(${embed.footer.text})`);
+        }
+        return this.unmark(parts.filter(Boolean).join(' '), message.guild);
+    },
+    // Discord's markdown, mentions and emoji as the game would show them, which is as text with none of it
+    unmark(str, guild) {
+        const named = (cache, id, fallback) => {
+            const it = guild && cache && cache.resolve(id);
+            return it ? it.displayName || it.name : fallback;
+        };
+        return String(str)
+            .replace(/<@!?(\d+)>/g, (m, id) => `@${named(guild && guild.members, id, 'someone')}`)
+            .replace(/<@&(\d+)>/g, (m, id) => `@${named(guild && guild.roles, id, 'role')}`)
+            .replace(/<#(\d+)>/g, (m, id) => `#${named(guild && guild.channels, id, 'channel')}`)
+            .replace(/<a?:\w+:\d+>/g, '')
+            .replace(/<t:(\d+)(?::\w)?>/g, (m, t) => new Date(Number(t) * 1000).toUTCString())
+            .replace(/\[([^\]]*)\]\(<?([^)>]*)>?\)/g, (m, label, url) => label === url ? url : `${label} (${url})`)
+            .replace(/<(https?:\/\/[^>]+)>/g, '$1')
+            .replace(/\p{Extended_Pictographic}\uFE0F?/gu, '')
+            .replace(/^(#{1,3}|-#|>)\s+/gm, '')
+            .replace(/(\*\*|__|~~|\|\||`+)/g, '')
+            .replace(/(^|[^\w\\])[*_]([^*_\s](?:[^*_]*[^*_\s])?)[*_](?!\w)/g, '$1$2')
+            .replace(/\\([\\*_~`|>#\-[\]()])/g, '$1')
+            .replace(/\s+/g, ' ')
+            .trim();
     },
     // The Said count's line, as a line post in the server's thread and in its game
     announce(server, said) {

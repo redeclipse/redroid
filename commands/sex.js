@@ -22,7 +22,7 @@ module.exports = {
         const count = global.stats.inc('sex'), mile = global.stats.milestone(count, 'sexual encounter');
         const embed = {
             color: 0x8888ff,
-            description: `🍆 **Sex** — <@${bot.user.id}> ${global.dict.query('sex', action.user, user, null, randuser)}`
+            description: `🍆 **Sex** with <@${user.id}> — <@${bot.user.id}> ${global.dict.query('sex', action.user, user, null, randuser)}`
         };
         if (mile) embed.footer = { text: mile };
         await action.reply({ embeds: [ embed ] });

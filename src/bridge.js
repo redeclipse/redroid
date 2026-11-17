@@ -505,6 +505,7 @@ module.exports = {
                 if (!text) return;
                 const content = msg.event === 'action' ? `*${this.escape(text)}*` : this.escape(text);
                 this.post({ server, kind: 'chat', create: true, username: this.username(client), name: this.plain(client.name), content });
+                this.announce(server, global.said.heard(text));
                 return;
             }
             case 'join':
@@ -624,7 +625,9 @@ module.exports = {
         const key = Object.keys(this.data.threads).find(k => this.data.threads[k] === message.channel.id);
         if (!key) return;
         const server = this.servers.get(key);
+        const said = global.said.heard(message.content); // announced after the message itself, in the thread and the game
         if (!server || !this.eligible(server.info)) {
+            if (said) this.reply(message, said.discord);
             if (Date.now() - (this.noted.get(message.channel.id) || 0) < this.config.offlinenote) return;
             this.noted.set(message.channel.id, Date.now());
             const why = server ? 'no longer takes chat from here' : 'is offline';
@@ -648,12 +651,19 @@ module.exports = {
         const body = { text, from, via: this.config.via, action, privilege: linked ? linked.privilege : this.privilege(message) };
         if (linked) body.account = linked.handle;
         this.send(server, { user: message.author.id, message, body });
+        this.announce(server, said);
+    },
+    // The Said count's line, as a line post in the server's thread and in its game
+    announce(server, said) {
+        if (!said) return;
+        this.post({ server, kind: 'line', create: true, content: said.discord });
+        this.send(server, { user: 'said', body: { text: said.game, via: this.config.via } });
     },
 
     // Messages for a game server wait their turn: one every gamegap, and each Discord user's no more often than usergap,
     // so one busy user doesn't hold up the others or trip the game's limits
     send(server, item) {
-        if (server.outbox.filter(o => o.user === item.user).length >= this.config.userbacklog) {
+        if (item.message && server.outbox.filter(o => o.user === item.user).length >= this.config.userbacklog) {
             this.reply(item.message, 'You\'re writing faster than the game takes chat, so that one wasn\'t sent.');
             return;
         }
@@ -665,7 +675,7 @@ module.exports = {
         server.pumping = true;
         while (server.outbox.length && !this.stopped) {
             if (this.servers.get(server.key) !== server || !this.eligible(server.info)) {
-                for (const item of server.outbox.splice(0)) this.reply(item.message, 'That server went away before this reached it.');
+                for (const item of server.outbox.splice(0)) if (item.message) this.reply(item.message, 'That server went away before this reached it.');
                 break;
             }
             const now = Date.now(), ready = o => now - (server.users.get(o.user) || 0) >= this.config.usergap;
@@ -679,8 +689,15 @@ module.exports = {
             for (const [user, when] of server.users) if (Date.now() - when > this.config.usergap) server.users.delete(user);
             server.users.set(item.user, Date.now());
             const done = await this.say(server, item.body);
-            if (done.error) this.reply(item.message, `That didn't reach the server: ${done.error}`);
-            else if (done.cut) this.reply(item.message, `That was too long for the game, so only its first ${done.cut} characters reached it, ending with ...`);
+            if (!item.message) {
+                if (done.error) global.log.warn(`Bridge: ${server.key}: a line for the game didn't reach it: ${done.error}`);
+            }
+            else if (done.error) {
+                this.reply(item.message, `That didn't reach the server: ${done.error}`);
+            }
+            else if (done.cut) {
+                this.reply(item.message, `That was too long for the game, so only its first ${done.cut} characters reached it, ending with ...`);
+            }
             await this.wait(this.config.gamegap);
         }
         server.pumping = false;

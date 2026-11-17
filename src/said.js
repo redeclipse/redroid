@@ -1,7 +1,7 @@
 const { Events } = require('discord.js');
 
-// "That's what X said", X being one to three words, with or without the apostrophe
-const SAID = /\bthat['’`]?s\s+what\s+(?:\S+\s+){1,3}?said\b/i;
+// "That's what X said" or "that is what X said", X being one to three words, with or without the apostrophe
+const SAID = /\bthat(?:['’`]?s|\s+is)\s+what\s+(?:\S+\s+){1,3}?said\b/i;
 
 // The Said count: each "That's what X said" on Discord or in game adds one and is announced with a line, at most once a cooldown
 module.exports = {

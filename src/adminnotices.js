@@ -83,7 +83,12 @@ module.exports = {
         const kind = KINDS[msg.kind] || 'Master';
         // one that waited for the bot says when it happened, as its post doesn't
         const when = Number(msg.time) && Date.now() / 1000 - msg.time > this.config.late / 1000 ? ` <t:${Math.floor(msg.time)}:f>` : '';
-        if (!global.post.adminnotice(`**${kind}**${when}: ${escapeMarkdown(msg.text)}`)) return;
+        // while it can't be posted, as when the bot is offline on Discord, the socket is closed and opened again later
+        // asking for those after the last one posted, so none are lost
+        if (!global.post.adminnotice(`**${kind}**${when}: ${escapeMarkdown(msg.text)}`)) {
+            if (this.live) this.live.close();
+            return;
+        }
         this.data.last = id;
         this.save();
     },

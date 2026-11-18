@@ -1,6 +1,6 @@
 const { RESTJSONErrorCodes } = require('discord.js');
 
-// The bot's own posts to its channels, log entries, audit embeds, notices and find players lines, each channel taking them in turn under Discord's
+// The bot's own posts to its channels, log entries, audit embeds, notices, admin notices and find players lines, each channel taking them in turn under Discord's
 // 5 posts every 5 seconds: notices waiting together are merged and never lost, audit embeds waiting together are packed up to
 // 10 per post, identical log entries waiting together are counted, and log or audit entries past the backlog are dropped, oldest first
 // What Discord allows, which no setting changes: characters in a post, in an embed's description, embeds per post, and total embed characters per post
@@ -62,6 +62,15 @@ module.exports = {
             line.dropped++;
         }
         this.pump(line);
+    },
+    // A line for the admin notices channel, from the master's Admin notices; lines waiting together go in one post, they never
+    // mention anyone, and none are dropped, as each is something an administrator has to see
+    adminnotice(text) {
+        const line = this.line(this.bot && this.bot.config.channels.notices);
+        if (!line) return false;
+        line.items.push({ kind: 'admin', text });
+        this.pump(line);
+        return true;
     },
     // An audit embed for the audit channel
     audit(embed) {
@@ -164,6 +173,16 @@ module.exports = {
                 line.dropped = 0;
             }
             return { content, embeds };
+        }
+        if (head.kind === 'admin') {
+            const texts = [head.text.slice(0, DISCORD_POSTSIZE)];
+            let size = texts[0].length;
+            while (line.items.length && line.items[0].kind === 'admin' && size + 1 + line.items[0].text.length <= DISCORD_POSTSIZE) {
+                const o = line.items.shift();
+                texts.push(o.text);
+                size += 1 + o.text.length;
+            }
+            return { content: texts.join('\n'), allowedMentions: { parse: [] } };
         }
         if (head.kind === 'find') {
             const texts = [];

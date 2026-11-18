@@ -4,9 +4,14 @@ module.exports = {
     name: 'faq',
     faqs: {},
     file: null, // config.faq.file
+    config: null, // config.faq: where the FAQ is, and who may change it
     start(bot) {
-        this.file = (bot.config.faq || {}).file;
+        this.config = bot.config.faq;
+        this.file = (this.config || {}).file;
         if (!this.file) throw new Error('FAQ: config.faq.file is needed.');
+        for (const key of [ 'level_add', 'level_remove', 'level_mass', 'buttonttl' ]) {
+            if (typeof this.config[key] !== 'number') throw new Error(`FAQ: config.faq.${key} is needed.`);
+        }
         global.log.out(`Loading FAQs: ${this.file}`);
         const parsed = tools.readjson(this.file, data => tools.isobject(data) && Object.values(data).every(Array.isArray));
         if (parsed) {
@@ -84,6 +89,32 @@ module.exports = {
     lookup(target) {
         if (!this.faqs[target]) return null;
         return this.faqs[target];
+    },
+    // The stored topic for a name, matched exactly ignoring case; changes never match loosely
+    topic(name) {
+        if (!name) return null;
+        if (Object.hasOwn(this.faqs, name)) return name;
+        const lower = name.toLowerCase();
+        return Object.keys(this.faqs).find(k => k.toLowerCase() === lower) || null;
+    },
+    add(topic, answer) {
+        const targ = this.topic(topic) || topic;
+        const list = this.faqs[targ] || [];
+        if (list.includes(answer)) throw `FAQ '${targ}' already has that answer.`;
+        list.push(answer);
+        this.faqs[targ] = list;
+        if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
+        return { topic: targ, index: list.length, created: list.length === 1 };
+    },
+    // Removes the listed answers from a topic, or the whole topic with no list; a topic left with no answers goes too
+    remove(topic, list = null) {
+        if (!this.faqs[topic]) throw `There is no FAQ '${topic}'.`;
+        const len = this.faqs[topic].length;
+        const data = list ? this.faqs[topic].filter(value => !list.includes(value)) : [];
+        if (data.length > 0) this.faqs[topic] = data;
+        else delete this.faqs[topic];
+        if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
+        return len - data.length;
     },
     query(target, str, level = 0) {
         let result = null;

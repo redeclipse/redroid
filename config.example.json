@@ -57,7 +57,11 @@
         "keep": 7
     },
     "faq": {
-        "file": "./db/faq.json"
+        "file": "./db/faq.json",
+        "level_add": 2,
+        "level_remove": 2,
+        "level_mass": 3,
+        "buttonttl": 900000
     },
     "quote": {
         "file": "./db/quote.json"

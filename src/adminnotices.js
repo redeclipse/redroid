@@ -15,10 +15,11 @@ const KINDS = {
     master: 'Master',
     queue: 'Matchmaking queue',
 };
-// How a notice's level is named in its title; info, and anything from a master too old to say, has none
+// How a notice's level is named in its header; info, and anything from a master too old to say, has none
 const LEVELS = { warning: 'Warning', error: 'Error' };
-// What Discord allows in an embed's title and description
-const DISCORD_TITLESIZE = 256;
+// The icon each level's header starts with
+const ICONS = { info: 'info', warning: 'warning', error: 'alert' };
+// What Discord allows in an embed's description
 const DISCORD_EMBEDSIZE = 4096;
 
 module.exports = {
@@ -94,12 +95,14 @@ module.exports = {
     notice(msg) {
         const id = Number(msg.id);
         if (!Number.isFinite(id) || id <= this.data.last || typeof msg.text !== 'string') return;
-        // the level is in the title as well as the colour, which not everyone can tell apart
+        // the level is in the header as well as the colour, which not everyone can tell apart; the header starts the description
+        // with its icon, as audit embeds' do, since Discord doesn't draw custom emoji in an embed's title
         const level = LEVELS[msg.level] ? msg.level : 'info';
         const kind = KINDS[msg.kind] || 'Master';
+        const icon = global.emoji ? global.emoji.icons(ICONS[level]) : '';
+        const header = `${icon}**${LEVELS[level] ? `${kind}: ${LEVELS[level]}` : kind}**`;
         const embed = {
-            title: (LEVELS[level] ? `${kind}: ${LEVELS[level]}` : kind).slice(0, DISCORD_TITLESIZE),
-            description: escapeMarkdown(msg.text).slice(0, DISCORD_EMBEDSIZE),
+            description: `${header}\n${escapeMarkdown(msg.text)}`.slice(0, DISCORD_EMBEDSIZE),
             color: this.config.colours[level],
         };
         // when it happened, which for one that waited for the bot isn't when it was posted

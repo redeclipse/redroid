@@ -99,6 +99,7 @@ module.exports = {
             case 'add': {
                 if (global.dict.config.level_add > level) throw `Access level '${global.dict.config.level_add}' is required.`;
                 const word = this.getdict(action), str = action.options.getString('string'), ret = global.dict.add(word, str);
+                global.log.audit(`${action.user.tag} added to dictionary '${word}': ${escapeMarkdown(ret.slice(0, 200))}`);
                 await action.reply({
                     embeds: [{
                         color: 0x8888ff,
@@ -120,7 +121,11 @@ module.exports = {
                     level_mass: cfg.level_mass,
                     massnote: 'remove more than one entry',
                     ttl: cfg.buttonttl,
-                    apply: () => global.dict.remove(word, list)
+                    apply: () => {
+                        const ret = global.dict.remove(word, list);
+                        global.log.audit(`${action.user.tag} removed ${ret} entr${ret === 1 ? 'y' : 'ies'} from dictionary '${word}'`);
+                        return ret;
+                    }
                 });
                 break;
             }

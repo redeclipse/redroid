@@ -101,7 +101,7 @@ module.exports = {
         const topic = await this.topic(action, action.options.getString('topic')), answer = action.options.getString('answer').trim();
         if (!answer) throw 'No answer provided.';
         const ret = global.faq.add(topic.name, answer);
-        global.log.out(`FAQ: ${action.user.username} added answer ${ret.index} to '${ret.topic}'`);
+        global.log.audit(`${action.user.tag} added answer ${ret.index} to FAQ '${ret.topic}'${ret.created ? ', a new topic' : ''}`);
         await action.reply({
             embeds: [{
                 color: 0x8888ff,
@@ -132,7 +132,7 @@ module.exports = {
             ttl: cfg.buttonttl,
             apply: () => {
                 const ret = global.faq.remove(topic.name, list); // only what was shown, so answers added meanwhile stay
-                global.log.out(`FAQ: ${action.user.username} removed ${ret} answer(s) from '${topic.name}'${global.faq.faqs[topic.name] ? '' : ', and the topic'}`);
+                global.log.audit(`${action.user.tag} removed ${ret} answer(s) from FAQ '${topic.name}'${global.faq.faqs[topic.name] ? '' : ', and the topic'}`);
                 return ret;
             }
         });

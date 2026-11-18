@@ -75,14 +75,15 @@ module.exports = {
         const direct = global.faq.topic(name);
         if (direct) return { name: direct, found: true };
         if (name.slice(0, 1) !== '/' && global.users) {
-            let ukey = null;
+            let ukey;
             if (/^(?:<@!?\d+>|\d{17,20})$/.test(name)) {
                 const resolved = await global.users.resolve(action, name);
-                if (resolved) ukey = resolved.name;
+                if (!resolved || resolved.name === resolved.id) throw `There is no member '${escapeMarkdown(name)}'.`;
+                ukey = resolved.name;
             }
             else { ukey = global.users.findkey(name, false); }
-            const utopic = ukey ? global.faq.topic(ukey) : null;
-            if (utopic) return { name: utopic, found: true };
+            // A player's new topic goes under their name, where /user finds it
+            if (ukey) return { name: global.faq.topic(ukey) || ukey, found: !!global.faq.topic(ukey) };
         }
         return { name, found: false };
     },
@@ -114,7 +115,7 @@ module.exports = {
         const topic = await this.topic(action, action.options.getString('topic')), str = action.options.getString('search');
         if (!topic.found) throw `There is no FAQ '${escapeMarkdown(topic.name)}'.`;
         const answers = global.faq.faqs[topic.name];
-        let list = answers;
+        let list = [ ...answers ]; // a copy, so answers added before OK are not part of it
         if (str) {
             const regex = global.tools.strtoregex(str, level);
             list = answers.filter(value => value.match(regex));
@@ -124,14 +125,14 @@ module.exports = {
         await global.confirm.open(action, {
             command: 'faq',
             title: `${global.emoji.icons('question')}**FAQ: ${escapeMarkdown(topic.name)}**${whole ? ' (the whole topic)' : ''}`,
-            list: [ ...list ],
+            list: list,
             mass: whole || list.length > 1,
             level_mass: cfg.level_mass,
             massnote: 'remove a whole topic or more than one answer',
             ttl: cfg.buttonttl,
             apply: () => {
-                const ret = global.faq.remove(topic.name, whole ? null : list);
-                global.log.out(`FAQ: ${action.user.username} removed ${ret} answer(s) from '${topic.name}'${whole ? ', and the topic' : ''}`);
+                const ret = global.faq.remove(topic.name, list); // only what was shown, so answers added meanwhile stay
+                global.log.out(`FAQ: ${action.user.username} removed ${ret} answer(s) from '${topic.name}'${global.faq.faqs[topic.name] ? '' : ', and the topic'}`);
                 return ret;
             }
         });

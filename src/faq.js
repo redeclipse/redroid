@@ -106,11 +106,11 @@ module.exports = {
         if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';
         return { topic: targ, index: list.length, created: list.length === 1 };
     },
-    // Removes the listed answers from a topic, or the whole topic with no list; a topic left with no answers goes too
-    remove(topic, list = null) {
+    // Removes the listed answers from a topic; a topic left with no answers goes too
+    remove(topic, list) {
         if (!this.faqs[topic]) throw `There is no FAQ '${topic}'.`;
         const len = this.faqs[topic].length;
-        const data = list ? this.faqs[topic].filter(value => !list.includes(value)) : [];
+        const data = this.faqs[topic].filter(value => !list.includes(value));
         if (data.length > 0) this.faqs[topic] = data;
         else delete this.faqs[topic];
         if (!this.save()) throw 'The change was made but could not be saved to disk, it will be lost on restart.';

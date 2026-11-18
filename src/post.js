@@ -1,7 +1,7 @@
 const { RESTJSONErrorCodes } = require('discord.js');
 
 // The bot's own posts to its channels, log entries, audit embeds, notices, admin notices and find players lines, each channel taking them in turn under Discord's
-// 5 posts every 5 seconds: notices waiting together are merged and never lost, audit embeds waiting together are packed up to
+// 5 posts every 5 seconds: notices waiting together are merged and never lost, audit and admin notice embeds waiting together are packed up to
 // 10 per post, identical log entries waiting together are counted, and log or audit entries past the backlog are dropped, oldest first
 // What Discord allows, which no setting changes: characters in a post, in an embed's description, embeds per post, and total embed characters per post
 const DISCORD_POSTSIZE = 2000;
@@ -63,12 +63,12 @@ module.exports = {
         }
         this.pump(line);
     },
-    // A line for the admin notices channel, from the master's Admin notices; lines waiting together go in one post, they never
-    // mention anyone, and none are dropped, as each is something an administrator has to see
-    adminnotice(text) {
+    // An embed for the admin notices channel, from the master's Admin notices; embeds waiting together are packed into one post as
+    // audit embeds are, they never mention anyone, and none are dropped, as each is something an administrator has to see
+    adminnotice(embed) {
         const line = this.line(this.bot && this.bot.config.channels.notices);
         if (!line) return false;
-        line.items.push({ kind: 'admin', text });
+        line.items.push({ kind: 'admin', embed });
         this.pump(line);
         return true;
     },
@@ -83,6 +83,21 @@ module.exports = {
             line.dropped++;
         }
         this.pump(line);
+    },
+    // The head's embed with those of its kind waiting right after it, as many as one post holds
+    pack(line, head) {
+        const embeds = [head.embed];
+        let total = this.embedsize(head.embed);
+        while (line.items.length && embeds.length < DISCORD_EMBEDS) {
+            const next = line.items[0];
+            if (next.kind !== head.kind) break;
+            const nextsize = this.embedsize(next.embed);
+            if (total + nextsize > DISCORD_EMBEDTOTAL) break;
+            embeds.push(next.embed);
+            total += nextsize;
+            line.items.shift();
+        }
+        return embeds;
     },
     embedsize(embed) {
         let len = (embed.title ? embed.title.length : 0)
@@ -156,17 +171,7 @@ module.exports = {
             return { content: text };
         }
         if (head.kind === 'audit') {
-            const embeds = [head.embed];
-            let total = this.embedsize(head.embed);
-            while (line.items.length && embeds.length < DISCORD_EMBEDS) {
-                const next = line.items[0];
-                if (next.kind !== 'audit') break;
-                const nextsize = this.embedsize(next.embed);
-                if (total + nextsize > DISCORD_EMBEDTOTAL) break;
-                embeds.push(next.embed);
-                total += nextsize;
-                line.items.shift();
-            }
+            const embeds = this.pack(line, head);
             let content;
             if (line.dropped) {
                 content = `*${line.dropped} audit ${line.dropped === 1 ? 'entry was' : 'entries were'} dropped to keep up.*`;
@@ -174,16 +179,7 @@ module.exports = {
             }
             return { content, embeds };
         }
-        if (head.kind === 'admin') {
-            const texts = [head.text.slice(0, DISCORD_POSTSIZE)];
-            let size = texts[0].length;
-            while (line.items.length && line.items[0].kind === 'admin' && size + 1 + line.items[0].text.length <= DISCORD_POSTSIZE) {
-                const o = line.items.shift();
-                texts.push(o.text);
-                size += 1 + o.text.length;
-            }
-            return { content: texts.join('\n'), allowedMentions: { parse: [] } };
-        }
+        if (head.kind === 'admin') return { embeds: this.pack(line, head), allowedMentions: { parse: [] } };
         if (head.kind === 'find') {
             const texts = [];
             if (line.dropped) {

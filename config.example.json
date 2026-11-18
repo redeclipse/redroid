@@ -27,7 +27,11 @@
     "adminnotices": {
         "file": "db/adminnotices.json",
         "retry": 30000,
-        "late": 120000
+        "colours": {
+            "info": 5793266,
+            "warning": 16705372,
+            "error": 15548997
+        }
     },
     "emoji": {},
     "ratesummary": 600000,

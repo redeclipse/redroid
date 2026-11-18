@@ -1,11 +1,25 @@
 const tools = require('./tools'); // global.tools, which starts after this does
 const { Events, escapeMarkdown } = require('discord.js');
 
-// The master's Admin notices, such as Master Shield's bans and changes to the global lists and accounts, posted to the admin
-// notices channel: the bot's account watches the master's live list for them, and asks for the ones it missed after a restart
-// or a dropped connection by the last id it posted
+// The master's Admin notices, such as Master shield's bans, failed sign-ins, servers that couldn't be listed and changes to the
+// global lists and accounts, posted to the admin notices channel: the bot's account watches the master's live list for them,
+// and asks for the ones it missed after a restart or a dropped connection by the last id it posted
 // How the kinds are named in the channel
-const KINDS = { shield: 'Master Shield', control: 'Global lists', account: 'Accounts', serveraccount: 'Server accounts' };
+const KINDS = {
+    shield: 'Master shield',
+    control: 'Global lists',
+    account: 'Accounts',
+    serveraccount: 'Server accounts',
+    signin: 'Sign-ins',
+    listing: 'Server listing',
+    master: 'Master',
+    queue: 'Matchmaking queue',
+};
+// How a notice's level is named in its title; info, and anything from a master too old to say, has none
+const LEVELS = { warning: 'Warning', error: 'Error' };
+// What Discord allows in an embed's title and description
+const DISCORD_TITLESIZE = 256;
+const DISCORD_EMBEDSIZE = 4096;
 
 module.exports = {
     name: 'adminnotices',
@@ -80,12 +94,19 @@ module.exports = {
     notice(msg) {
         const id = Number(msg.id);
         if (!Number.isFinite(id) || id <= this.data.last || typeof msg.text !== 'string') return;
+        // the level is in the title as well as the colour, which not everyone can tell apart
+        const level = LEVELS[msg.level] ? msg.level : 'info';
         const kind = KINDS[msg.kind] || 'Master';
-        // one that waited for the bot says when it happened, as its post doesn't
-        const when = Number(msg.time) && Date.now() / 1000 - msg.time > this.config.late / 1000 ? ` <t:${Math.floor(msg.time)}:f>` : '';
+        const embed = {
+            title: (LEVELS[level] ? `${kind}: ${LEVELS[level]}` : kind).slice(0, DISCORD_TITLESIZE),
+            description: escapeMarkdown(msg.text).slice(0, DISCORD_EMBEDSIZE),
+            color: this.config.colours[level],
+        };
+        // when it happened, which for one that waited for the bot isn't when it was posted
+        if (Number(msg.time) > 0) embed.timestamp = new Date(msg.time * 1000).toISOString();
         // while it can't be posted, as when the bot is offline on Discord, the socket is closed and opened again later
         // asking for those after the last one posted, so none are lost
-        if (!global.post.adminnotice(`**${kind}**${when}: ${escapeMarkdown(msg.text)}`)) {
+        if (!global.post.adminnotice(embed)) {
             if (this.live) this.live.close();
             return;
         }

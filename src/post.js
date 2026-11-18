@@ -50,7 +50,7 @@ module.exports = {
         line.items.push({ kind: 'notice', ...notice, text });
         this.pump(line);
     },
-    // A line for the find players channel, about the Matchmaking Queue or someone joining or leaving a server; lines waiting
+    // A line for the find players channel, about the Matchmaking queue or someone joining or leaving a server; lines waiting
     // together go in one post, they never mention anyone, and past the backlog the oldest are dropped
     findplayers(text) {
         const line = this.line(this.bot && this.bot.config.channels.findplayers);

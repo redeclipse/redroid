@@ -1,15 +1,15 @@
 const { ApplicationCommandOptionType, MessageFlags } = require('discord.js');
 
-// The Matchmaking Queue from Discord: where you stand, and the Matchmaking thread's buttons, which answer only the member who pressed them
+// The Matchmaking queue from Discord: where you stand, and the Matchmaking thread's buttons, which answer only the member who pressed them
 module.exports = {
     config: {
         chat: {
             name: 'matchmaking',
-            description: 'The Matchmaking Queue, which sends everyone waiting to a server together once there are enough.',
+            description: 'The Matchmaking queue, which sends everyone waiting to a server together once there are enough.',
             options: [
                 {
                     name: 'status',
-                    description: 'Where you stand in the Matchmaking Queue.',
+                    description: 'Where you stand in the Matchmaking queue.',
                     type: ApplicationCommandOptionType.Subcommand
                 }
             ]
@@ -22,7 +22,7 @@ module.exports = {
     async button(bot, action, id, op) {
         const mm = global.matchmaking;
         if (!mm || !mm.bot) throw 'Matchmaking isn\'t running.';
-        if (global.access.level(action.guild, action.user) < 0) throw 'You can\'t use the Matchmaking Queue.';
+        if (global.access.level(action.guild, action.user) < 0) throw 'You can\'t use the Matchmaking queue.';
         // the master can take a moment, and an unanswered button fails after 3 seconds
         await action.deferReply({ flags: MessageFlags.Ephemeral });
         let content;

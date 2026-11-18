@@ -389,7 +389,7 @@ module.exports = {
             if (this.speakers.size > this.config.speakers) this.speakers.delete(this.speakers.keys().next().value);
         }
         else {
-            // only a post naming who it mentions, such as a Matchmaking Queue pop's, pings anyone
+            // only a post naming who it mentions, such as a Matchmaking queue pop's, pings anyone
             await thread.send({ content: item.content, allowedMentions: item.mentions ? { users: item.mentions } : { parse: [] }, flags: MessageFlags.SuppressEmbeds });
         }
     },

@@ -139,7 +139,7 @@ module.exports = {
     async connect() {
         if (this.stopped) return;
         this.token = await this.signin();
-        let url = this.master.replace(/^http/, 'ws') + '/api/v1/servers/live';
+        let url = this.master.replace(/^http/, 'ws') + '/api/v1/live';
         if (this.token) url += `?token=${encodeURIComponent(this.token)}`;
         const ws = new WebSocket(url);
         this.live = ws;

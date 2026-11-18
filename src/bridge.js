@@ -119,7 +119,7 @@ module.exports = {
     // The master's live server list says which servers exist and whether they take part
     openlive() {
         if (this.stopped) return;
-        const ws = new WebSocket(this.master.replace(/^http/, 'ws') + '/api/v1/servers/live', { maxPayload: this.config.livemax });
+        const ws = new WebSocket(this.master.replace(/^http/, 'ws') + '/api/v1/live', { maxPayload: this.config.livemax });
         ws.heard = Date.now();
         ws.on('ping', () => ws.heard = Date.now());
         this.live = ws;

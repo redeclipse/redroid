@@ -42,7 +42,8 @@ module.exports = {
                             type: ApplicationCommandOptionType.String,
                             name: 'string',
                             description: 'String to add.',
-                            required: true
+                            required: true,
+                            max_length: 1024
                         }
                     ]
                 },

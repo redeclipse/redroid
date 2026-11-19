@@ -415,12 +415,22 @@ module.exports = {
     // A server's text is cut to what a post could hold first, and a code's brackets never span another code, so the work
     // grows only with the length
     plain(str) {
-        return String(str || '').slice(0, (this.config || {}).textmax).replace(/\f(\[[^\]\f]*\]|\([^)\f]*\)|\{[^}\f]*\}|.)/g, '').replace(/\s+/g, ' ').trim();
+        return String(str || '').slice(0, (this.config || {}).textmax).replace(/\f(\[[^\]\f]*\]|\([^)\f]*\)|\{[^}\f]*\}|<[^>\f]*>|.)/g, '').replace(/\s+/g, ' ').trim();
     },
     // Game text as Discord shows it, with nothing taken as markdown: escapeMarkdown leaves headings, lists and masked
     // links alone unless asked, and doesn't know subtext (-#) or quotes (>) at all; each piece starts a line of its post
     escape(str) {
         return escapeMarkdown(str, { heading: true, bulletedList: true, numberedList: true, maskedLink: true }).replace(/^(-#|>)/, '\\$1');
+    },
+    // Game chat as Discord shows it: keeps inline styles the game itself renders (bold, italic, underline, strike, mono),
+    // while still escaping Discord-only block syntax, spoilers, code blocks and masked links
+    escapechat(str) {
+        return escapeMarkdown(str, {
+            codeBlock: true, inlineCode: false, bold: false, italic: false,
+            underline: false, strikethrough: false, spoiler: true,
+            codeBlockContent: false, inlineCodeContent: false, escape: false,
+            heading: true, bulletedList: true, numberedList: true, maskedLink: true
+        }).replace(/^(-#|>)/, '\\$1');
     },
     // A server's thread as a bare link, which Discord shows as the thread under its own name, or its name in bold until it has one
     threadlink(server) {
@@ -507,7 +517,7 @@ module.exports = {
                 if (client.web && client.handle === this.bot.config.auth.handle) return; // our own, coming back
                 const text = this.plain(msg.text);
                 if (!text) return;
-                const content = msg.event === 'action' ? `*${this.escape(text)}*` : this.escape(text);
+                const content = msg.event === 'action' ? `*${this.escape(text)}*` : this.escapechat(text);
                 this.post({ server, kind: 'chat', create: true, username: this.username(client), name: this.plain(client.name), content });
                 this.announce(server, global.said.heard(text));
                 return;
@@ -686,7 +696,7 @@ module.exports = {
         }
         return this.unmark(parts.filter(Boolean).join(' '), message.guild);
     },
-    // Discord's markdown, mentions and emoji as the game would show them, which is as text with none of it
+    // Discord's mentions, emoji and block markdown as the game would show them, keeping inline styles the game renders
     unmark(str, guild) {
         const named = (cache, id, fallback) => {
             const it = guild && cache && cache.resolve(id);
@@ -702,9 +712,8 @@ module.exports = {
             .replace(/<(https?:\/\/[^>]+)>/g, '$1')
             .replace(/\p{Extended_Pictographic}\uFE0F?/gu, '')
             .replace(/^(#{1,3}|-#|>)\s+/gm, '')
-            .replace(/(\*\*|__|~~|\|\||`+)/g, '')
-            .replace(/(^|[^\w\\])[*_]([^*_\s](?:[^*_]*[^*_\s])?)[*_](?!\w)/g, '$1$2')
-            .replace(/\\([\\*_~`|>#\-[\]()])/g, '$1')
+            .replace(/(```+|\|\|)/g, '')
+            .replace(/\\([|>#\-[\]()])/g, '$1')
             .replace(/\s+/g, ' ')
             .trim();
     },

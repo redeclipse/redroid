@@ -125,9 +125,9 @@
         "answerwait": 5000,
         "notewait": 15000,
         "shown": 12,
-        "browser": "https://www.redeclipse.net/servers",
-        "account": "https://www.redeclipse.net/account/register",
-        "profile": "https://www.redeclipse.net/account/profile",
+        "browser": "https://redeclipse.net/servers",
+        "account": "https://redeclipse.net/account/register",
+        "profile": "https://redeclipse.net/account/profile",
         "colour": 13378082
     },
     "audit": {

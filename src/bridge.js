@@ -135,13 +135,20 @@ module.exports = {
             if (msg.event === 'snapshot') {
                 const seen = new Set();
                 for (const info of msg.servers || []) {
+                    if (info.reaped) continue;
                     seen.add(this.key(info));
                     this.update(info);
                 }
                 for (const [key, server] of this.servers) if (!seen.has(key)) this.remove(server);
             }
             else if (msg.event === 'add' || msg.event === 'update') {
-                this.update(msg.server);
+                if (msg.server && msg.server.reaped) {
+                    const server = this.servers.get(this.key(msg.server));
+                    if (server) this.remove(server);
+                }
+                else {
+                    this.update(msg.server);
+                }
             }
             else if (msg.event === 'remove') {
                 const server = this.servers.get(this.key(msg));

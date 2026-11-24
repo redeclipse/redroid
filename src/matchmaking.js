@@ -171,10 +171,11 @@ module.exports = {
         const key = s => `${s.host}:${s.port}`;
         switch (msg.event) {
             case 'snapshot':
-                this.servers = new Map((msg.servers || []).map(s => [key(s), s]));
+                this.servers = new Map((msg.servers || []).filter(s => !s.reaped).map(s => [key(s), s]));
                 break;
             case 'add': case 'update':
-                if (msg.server) this.servers.set(key(msg.server), msg.server);
+                if (msg.server && msg.server.reaped) this.servers.delete(key(msg.server));
+                else if (msg.server) this.servers.set(key(msg.server), msg.server);
                 break;
             case 'remove':
                 this.servers.delete(key(msg));

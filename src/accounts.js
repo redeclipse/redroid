@@ -44,7 +44,7 @@ module.exports = {
     signinanswer(privkey, challenge) {
         const raw = global.bridge.answer(privkey, challenge);
         if (!raw) return null;
-        return crypto.createHash('sha256').update('Red Eclipse master sign-in ' + raw.toLowerCase().replace(/^0+(?=.)/, '')).digest('hex');
+        return crypto.createHash('sha256').update('Master Sign-in ' + raw.toLowerCase().replace(/^0+(?=.)/, '')).digest('hex');
     },
     async signinfetch() {
         const auth = this.bot.config.auth;

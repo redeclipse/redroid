@@ -326,7 +326,7 @@ module.exports = {
             description: 'Pick a match size to enter the queue for matchmaking. You\'ll be mentioned in that server\'s thread when it\'s time to join, and your place lasts 60 minutes. ' +
                 `Queuing needs a Red Eclipse account, [registered in the game or on the website](<${this.config.account}>) and [linked to Discord on the website](<${this.config.profile}>).` +
                 (this.bot.config.channels.findplayers ? ` <#${this.bot.config.channels.findplayers}> shows who joins or leaves the queue and the servers.` : '') +
-                (this.config.role ? ` Members mention <@&${this.config.role}> when they want more players: Get Matchmaking Pings to hear them, and Stop Matchmaking Pings to stop.` : '') +
+                (this.config.role ? ` Members mention <@&${this.config.role}> when they want more players: Get Pings to hear them, and Stop Pings to stop.` : '') +
                 '\n\n' + this.counts() + (waiting.length ? '\n\n' + waiting.join('\n') : ''),
             color: this.config.colour
         };
@@ -339,8 +339,8 @@ module.exports = {
         if (channels.length) top.addComponents(button('matchmaking 0 leave', 'Leave Queue', ButtonStyle.Danger, 'dead'));
         if (this.config.role) {
             top.addComponents(
-                button('matchmaking 0 notify', 'Get Matchmaking Pings', ButtonStyle.Primary, 'alert'),
-                button('matchmaking 0 stop', 'Stop Matchmaking Pings', ButtonStyle.Primary, 'warning'));
+                button('matchmaking 0 notify', 'Get Pings', ButtonStyle.Primary, 'alert'),
+                button('matchmaking 0 stop', 'Stop Pings', ButtonStyle.Primary, 'warning'));
         }
         if (top.components.length) rows.push(top);
         for (const c of channels.slice(0, 4)) {
@@ -403,15 +403,15 @@ module.exports = {
         return `${icon ? `${icon} ` : ''}${who}`;
     },
 
-    // Get Matchmaking Pings and Stop Matchmaking Pings give and take the role members mention when they want more players;
+    // Get Pings and Stop Pings give and take the role members mention when they want more players;
     // one without a linked account hears how to get one, as they can't queue when the ping comes
     async notify(member, on) {
         const role = this.config.role;
         if (!role) return '@Matchmaking pings aren\'t set up here.';
         if (member.roles.cache.has(role) === on) return on ? 'You already get @Matchmaking pings.' : 'You don\'t get @Matchmaking pings.';
         try {
-            if (on) await member.roles.add(role, 'Matchmaking: Get Matchmaking Pings');
-            else await member.roles.remove(role, 'Matchmaking: Stop Matchmaking Pings');
+            if (on) await member.roles.add(role, 'Matchmaking: Get Pings');
+            else await member.roles.remove(role, 'Matchmaking: Stop Pings');
         }
         catch (err) {
             global.log.warn(`Matchmaking: couldn't ${on ? 'give' : 'take'} the role ${on ? 'to' : 'from'} ${member.user.tag}: ${err.message}`);

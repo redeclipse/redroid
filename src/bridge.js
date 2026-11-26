@@ -1,4 +1,3 @@
-const crypto = require('crypto');
 const tools = require('./tools'); // global.tools, which starts after this does
 const { ChannelType, Events, MessageFlags, RESTJSONErrorCodes, RateLimitError, escapeMarkdown } = require('discord.js');
 // Node's own WebSocket answers pings without saying so, and these are how a quiet socket shows it's alive
@@ -852,20 +851,6 @@ module.exports = {
         }
         catch (e) {
             return { status: 0, json: null, error: e.name === 'TimeoutError' ? 'the server took too long to answer' : e.message };
-        }
-    },
-    // The game's challenge is a point on P-192, a sign for y's parity then x in hex, and its answer the x of that point
-    // times the private key, which is what ECDH gives with the point as the other side's public key
-    answer(privkey, challenge) {
-        try {
-            const ecdh = crypto.createECDH('prime192v1');
-            ecdh.setPrivateKey(Buffer.from(privkey.padStart(48, '0'), 'hex'));
-            const point = Buffer.concat([Buffer.from([challenge[0] === '-' ? 3 : 2]), Buffer.from(challenge.slice(1).padStart(48, '0'), 'hex')]);
-            return ecdh.computeSecret(point).toString('hex');
-        }
-        catch (e) {
-            global.log.error(`Bridge: ${e.message}`);
-            return null;
         }
     }
 };
